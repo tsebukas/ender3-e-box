@@ -27,12 +27,16 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
   - A separate lid that slides into the ceiling-flange grooves.
   - A separate front panel (holds connector cutouts for whatever board
     set is installed) that slides into the front-flange grooves.
-- Sides attach to the printer frame via a T-shaped rail on the outer
+- Sides attach to the printer frame via TWO T-shape rails on the outer
   face of each side wall. The rail profile is derived from
-  `lahteylesanne/4040_v-slot.jpg` (10 mm slot opening, 6.77 mm neck,
-  1.80 mm lip, 4.30 mm total depth, 11 mm inner chamber). The rail runs
-  along Y; the box slides into the profile from one Y-end. The wall's
-  outer face is positioned flush with the 4040 profile outer face.
+  `lahteylesanne/4040_v-slot.jpg`, which shows a 4040 profile (40 x 40
+  mm) whose face carries TWO V-slots (10 mm slot opening, 6.77 mm neck,
+  1.80 mm lip, 4.30 mm total depth, 11 mm inner chamber). Both rails
+  run along Y for the full box depth; the box slides into the profile
+  from one Y-end. The wall's outer face sits flush with the profile
+  face.
+- Default wall thickness is 2 mm. Integrated flanges are 5 mm thick
+  (thicker than the wall so they can host a 5 mm deep groove).
 - The front panel and bottom panel are deliberately isolated so swapping
   an electronics board only requires reprinting those pieces, not the
   whole enclosure. Preserve this modularity when adding new boards.
@@ -65,8 +69,15 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
 
 ## Working with build123d
 
-- Prefer build123d's modern builder API (`BuildPart`, `BuildSketch`,
-  `BuildLine`) over the older cadquery-style fluent chain.
+- Build parts with the context-manager builder API: wrap the whole part
+  in `with BuildPart() as name:` and add primitives or subtract cutters
+  inside. Non-rectangular features (V-slot rails, any contoured
+  profile) are built as a `BuildSketch` + `extrude`, not assembled from
+  primitive booleans. Avoid the algebraic `(a + b) - c` style for
+  anything but quick throwaway experiments.
+- Note the plane-normal direction when extruding: `Plane.XZ` has its
+  normal pointing in `-Y`, so extruding to +Y needs a negative amount
+  (or a custom plane). Comment the sign when it matters.
 - Export STEP for assembly review and STL for slicing; keep exports out
   of version control unless explicitly requested.
 - When you need up-to-date build123d API details, consult the context7
