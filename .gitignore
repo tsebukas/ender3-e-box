@@ -1,0 +1,10 @@
+# Build artefacts (STEP, STL, etc. regenerated from the sources)
+build/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Editor / tool local state
+.vscode/
+.claude/
