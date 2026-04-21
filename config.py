@@ -37,16 +37,21 @@ GROOVE_DEPTH = 5.0                # how far the groove bites into the flange
 VSLOT_NECK_WIDTH  =  6.77   # width of the neck between outer lip and chamber
 VSLOT_NECK_DEPTH  =  1.80   # outer lip thickness (outer face -> neck front)
 VSLOT_INNER_DEPTH =  4.30   # outer face -> back of the inner chamber
-VSLOT_INNER_WIDTH = 11.00   # inner chamber width
+VSLOT_INNER_WIDTH = 11.00   # inner chamber width (widest, right after the neck)
+VSLOT_BACK_WIDTH  =  3.00   # flat back wall of the chamber (estimated, no drawing dim)
 PROFILE_SIZE      = 40.0    # 4040 profile cross-section (square)
 
 # --- V-slot engaging rails on the side piece -----------------------------
-# Two T-profile rails on the outer face of each side wall, running the
-# full Y depth. RAIL_SPACING is the Z-centre-to-Z-centre distance
-# between the two rails and must match the V-slot spacing on the mating
-# profile face.
-RAIL_SPACING   = 20.0   # placeholder - measure against the actual frame
-RAIL_CLEARANCE = 0.3    # slack on rail width so it slides in smoothly
+# Two arrow-shaped rails on the outer face of each side wall, running
+# the full Y depth. Each rail has a rectangular tongue that passes
+# through the V-slot neck, followed by a pentagonal foot: a short flat
+# back at chamber width (11 mm) immediately past the neck, then
+# tapering walls that narrow to a point at the chamber back.
+# RAIL_SPACING is the Z-centre-to-Z-centre distance between the two
+# rails and must match the V-slot spacing on the mating profile face.
+RAIL_SPACING       = 20.0   # placeholder - measure against the actual frame
+RAIL_CLEARANCE     =  0.3   # slack on rail width so it slides in smoothly
+RAIL_FOOT_FLAT_DEP =  1.25  # depth of the foot's flat-back portion (past neck)
 
 # --- Misc ----------------------------------------------------------------
 EPS = 0.1   # small overshoot for boolean cuts to avoid coincident faces

@@ -17,16 +17,18 @@ Global axes (from config.py): +X printer width, +Y depth, +Z up.
 from pathlib import Path
 
 from build123d import (
+    BuildLine,
     BuildPart,
     BuildSketch,
     Box,
     Locations,
     Mode,
     Plane,
-    Rectangle,
+    Polyline,
     export_step,
     export_stl,
     extrude,
+    make_face,
 )
 
 import config as cfg
@@ -35,29 +37,49 @@ import config as cfg
 # ---------------------------------------------------------------------------
 # Derived geometry for the V-slot engaging rails
 # ---------------------------------------------------------------------------
-# T cross-section, drawn on Plane.XZ (local x = global X, local y = global Z):
+# Arrow cross-section, drawn on Plane.XZ (local x = global X, local y =
+# global Z). The tongue is a straight rectangle that fits the 6.77 mm
+# neck; the foot is a hexagon - flat back at 11 mm chamber width
+# immediately past the neck, tapering walls, and a short flat tip that
+# matches the V-slot chamber's flat back wall:
 #
 #     |<--- foot ----->|<-- tongue -->|
-#     +----------------+              |
-#     |                |              |  wider foot sits inside the
-#     |                +--------------+  11 mm chamber, narrower tongue
-#     |                |              |  slides through the 6.77 mm neck
-#     |                +--------------+
-#     +----------------+              |
+#        +-------------+              |
+#       /              |              |
+#      /               +--------------+
+#     +                |              |
+#      \               +--------------+
+#       \              |              |
+#        +-------------+              |
 #                             wall outer face (X = -WALL_THK)
 
-_RAIL_NECK_W = cfg.VSLOT_NECK_WIDTH - cfg.RAIL_CLEARANCE     # Z extent
-_RAIL_NECK_D = cfg.VSLOT_NECK_DEPTH                          # X extent
-_RAIL_FOOT_W = cfg.VSLOT_INNER_WIDTH - cfg.RAIL_CLEARANCE    # Z extent
-_RAIL_FOOT_D = cfg.VSLOT_INNER_DEPTH - cfg.VSLOT_NECK_DEPTH  # X extent
+_RAIL_NECK_W = cfg.VSLOT_NECK_WIDTH  - cfg.RAIL_CLEARANCE    # tongue Z
+_RAIL_FOOT_W = cfg.VSLOT_INNER_WIDTH - cfg.RAIL_CLEARANCE    # foot flat Z
+_RAIL_TIP_W  = cfg.VSLOT_BACK_WIDTH  - cfg.RAIL_CLEARANCE    # tip flat Z
 
-_WALL_OUTER_X = -cfg.WALL_THK
-
-_TONGUE_CX = _WALL_OUTER_X - _RAIL_NECK_D / 2
-_FOOT_CX   = _WALL_OUTER_X - _RAIL_NECK_D - _RAIL_FOOT_D / 2
+_WALL_OUTER_X     = -cfg.WALL_THK
+_TONGUE_END_X     = _WALL_OUTER_X - cfg.VSLOT_NECK_DEPTH
+_FOOT_FLAT_END_X  = _TONGUE_END_X - cfg.RAIL_FOOT_FLAT_DEP
+_FOOT_TIP_X       = _WALL_OUTER_X - cfg.VSLOT_INNER_DEPTH
 
 _RAIL_Z_LO = cfg.BOX_HEIGHT / 2 - cfg.RAIL_SPACING / 2
 _RAIL_Z_HI = cfg.BOX_HEIGHT / 2 + cfg.RAIL_SPACING / 2
+
+
+def _rail_polygon_pts(z_center: float) -> list[tuple[float, float]]:
+    """Ten (X, Z) vertices of one rail's cross-section, clockwise."""
+    return [
+        (_WALL_OUTER_X,    z_center + _RAIL_NECK_W / 2),
+        (_TONGUE_END_X,    z_center + _RAIL_NECK_W / 2),
+        (_TONGUE_END_X,    z_center + _RAIL_FOOT_W / 2),
+        (_FOOT_FLAT_END_X, z_center + _RAIL_FOOT_W / 2),
+        (_FOOT_TIP_X,      z_center + _RAIL_TIP_W  / 2),
+        (_FOOT_TIP_X,      z_center - _RAIL_TIP_W  / 2),
+        (_FOOT_FLAT_END_X, z_center - _RAIL_FOOT_W / 2),
+        (_TONGUE_END_X,    z_center - _RAIL_FOOT_W / 2),
+        (_TONGUE_END_X,    z_center - _RAIL_NECK_W / 2),
+        (_WALL_OUTER_X,    z_center - _RAIL_NECK_W / 2),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -116,16 +138,15 @@ with BuildPart() as left_side_builder:
             cfg.BOX_HEIGHT + 2 * cfg.EPS,
             mode=Mode.SUBTRACT)
 
-    # --- Two V-slot engaging rails (extruded T cross-sections) ---------
-    # Sketch both T-profiles on Plane.XZ at Y=0 and extrude along +Y
-    # so the rails span the whole side wall.  Plane.XZ's normal points
-    # in -Y, so a negative amount gives a +Y extrusion.
+    # --- Two V-slot engaging arrow-shaped rails ------------------------
+    # Sketch both rail cross-sections on Plane.XZ at Y=0 and extrude
+    # along +Y so the rails span the whole side wall.  Plane.XZ's
+    # normal points in -Y, so a negative amount gives a +Y extrusion.
     with BuildSketch(Plane.XZ) as _rail_sketch:
         for _z in (_RAIL_Z_LO, _RAIL_Z_HI):
-            with Locations((_TONGUE_CX, _z)):
-                Rectangle(_RAIL_NECK_D, _RAIL_NECK_W)
-            with Locations((_FOOT_CX, _z)):
-                Rectangle(_RAIL_FOOT_D, _RAIL_FOOT_W)
+            with BuildLine() as _rail_line:
+                Polyline(*_rail_polygon_pts(_z), close=True)
+            make_face()
     extrude(amount=-cfg.BOX_DEPTH)
 
 
