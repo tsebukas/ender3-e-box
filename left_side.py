@@ -1,15 +1,17 @@
 """
 Left side panel of the Ender 3 Pro electronics enclosure.
 
-This is the left END CAP of the box. The wall sits at X in [-WALL_THK, 0]
-and spans Y in [0, BOX_DEPTH], Z in [0, BOX_HEIGHT]. Three integrated
-flanges (floor, ceiling, front) extend into the box in the +X direction,
-each carrying a 5 mm deep slide-in groove for its own separately printed
-panel (bottom, lid, front panel).
+This is the left END CAP of the box. The wall sits inside the BOX_WIDTH
+envelope at X in [0, WALL_THK] and spans Y in [0, BOX_DEPTH],
+Z in [0, BOX_HEIGHT]. Three integrated flanges (floor, ceiling, front)
+extend into the box in the +X direction, each carrying a 5 mm deep
+slide-in groove for its own separately printed panel (bottom, lid,
+front panel).
 
-The outer (-X) face of the wall carries TWO T-shape rails that engage
-the two V-slots of the printer's 40-series frame profile. The rails run
-the full Y depth, so the box slides into the profile from one Y-end.
+The outer (X = 0) face of the wall carries TWO T-shape rails that
+engage the two V-slots of the printer's 40-series frame profile. The
+rails protrude into -X and run the full Y depth, so the box slides
+into the profile from one Y-end.
 
 Global axes (from config.py): +X printer width, +Y depth, +Z up.
 """
@@ -51,13 +53,13 @@ import config as cfg
 #      \               +--------------+
 #       \              |              |
 #        +-------------+              |
-#                             wall outer face (X = -WALL_THK)
+#                             wall outer face (X = 0)
 
 _RAIL_NECK_W = cfg.VSLOT_NECK_WIDTH         - cfg.VSLOT_CLEARANCE    # tongue Z
 _RAIL_FOOT_W = cfg.VSLOT_CHAMBER_WIDTH      - cfg.VSLOT_CLEARANCE    # foot flat Z
 _RAIL_TIP_W  = cfg.VSLOT_CHAMBER_BACK_WIDTH - cfg.VSLOT_CLEARANCE    # tip flat Z
 
-_WALL_OUTER_X     = -cfg.WALL_THK
+_WALL_OUTER_X     = 0.0
 _TONGUE_END_X     = _WALL_OUTER_X - cfg.VSLOT_NECK_DEPTH
 _FOOT_FLAT_END_X  = _TONGUE_END_X - cfg.VSLOT_CHAMBER_FLAT_DEPTH
 _FOOT_TIP_X       = _WALL_OUTER_X - cfg.VSLOT_POCKET_DEPTH
@@ -89,19 +91,20 @@ def _rail_polygon_pts(z_center: float) -> list[tuple[float, float]]:
 with BuildPart() as left_side_builder:
 
     # --- Side wall -----------------------------------------------------
-    # X in [-WALL_THK, 0], Y in [0, BOX_DEPTH], Z in [0, BOX_HEIGHT]
-    with Locations((-cfg.WALL_THK / 2,
+    # X in [0, WALL_THK], Y in [0, BOX_DEPTH], Z in [0, BOX_HEIGHT]
+    with Locations((cfg.WALL_THK / 2,
                     cfg.BOX_DEPTH / 2,
                     cfg.BOX_HEIGHT / 2)):
         Box(cfg.WALL_THK, cfg.BOX_DEPTH, cfg.BOX_HEIGHT)
 
     # --- Floor flange + bottom-panel groove ----------------------------
-    with Locations((cfg.FLANGE_WIDTH / 2,
+    # Flange X in [WALL_THK, WALL_THK + FLANGE_WIDTH].
+    with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
                     cfg.BOX_DEPTH / 2,
                     cfg.FLANGE_THK / 2)):
         Box(cfg.FLANGE_WIDTH, cfg.BOX_DEPTH, cfg.FLANGE_THK)
 
-    _groove_cx = cfg.FLANGE_WIDTH - cfg.GROOVE_DEPTH / 2 + cfg.EPS / 2
+    _groove_cx = cfg.WALL_THK + cfg.FLANGE_WIDTH - cfg.GROOVE_DEPTH / 2 + cfg.EPS / 2
     with Locations((_groove_cx,
                     cfg.BOX_DEPTH / 2,
                     cfg.FLANGE_THK / 2)):
@@ -111,7 +114,7 @@ with BuildPart() as left_side_builder:
             mode=Mode.SUBTRACT)
 
     # --- Ceiling flange + lid groove -----------------------------------
-    with Locations((cfg.FLANGE_WIDTH / 2,
+    with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
                     cfg.BOX_DEPTH / 2,
                     cfg.BOX_HEIGHT - cfg.FLANGE_THK / 2)):
         Box(cfg.FLANGE_WIDTH, cfg.BOX_DEPTH, cfg.FLANGE_THK)
@@ -125,7 +128,7 @@ with BuildPart() as left_side_builder:
             mode=Mode.SUBTRACT)
 
     # --- Front flange + front-panel groove -----------------------------
-    with Locations((cfg.FLANGE_WIDTH / 2,
+    with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
                     cfg.FLANGE_THK / 2,
                     cfg.BOX_HEIGHT / 2)):
         Box(cfg.FLANGE_WIDTH, cfg.FLANGE_THK, cfg.BOX_HEIGHT)
