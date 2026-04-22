@@ -19,6 +19,7 @@ Global axes (from config.py): +X printer width, +Y depth, +Z up.
 from pathlib import Path
 
 from build123d import (
+    Axis,
     BuildLine,
     BuildPart,
     BuildSketch,
@@ -30,6 +31,7 @@ from build123d import (
     export_step,
     export_stl,
     extrude,
+    fillet,
     make_face,
 )
 
@@ -97,14 +99,64 @@ with BuildPart() as left_side_builder:
                     cfg.BOX_HEIGHT / 2)):
         Box(cfg.WALL_THK, cfg.BOX_DEPTH, cfg.BOX_HEIGHT)
 
-    # --- Floor flange + bottom-panel groove ----------------------------
+    # --- Floor flange --------------------------------------------------
     # Flange X in [WALL_THK, WALL_THK + FLANGE_WIDTH].
     with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
                     cfg.BOX_DEPTH / 2,
                     cfg.FLANGE_THK / 2)):
         Box(cfg.FLANGE_WIDTH, cfg.BOX_DEPTH, cfg.FLANGE_THK)
 
+    # --- Ceiling flange ------------------------------------------------
+    with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
+                    cfg.BOX_DEPTH / 2,
+                    cfg.BOX_HEIGHT - cfg.FLANGE_THK / 2)):
+        Box(cfg.FLANGE_WIDTH, cfg.BOX_DEPTH, cfg.FLANGE_THK)
+
+    # --- Front flange --------------------------------------------------
+    with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
+                    cfg.FLANGE_THK / 2,
+                    cfg.BOX_HEIGHT / 2)):
+        Box(cfg.FLANGE_WIDTH, cfg.FLANGE_THK, cfg.BOX_HEIGHT)
+
+    # --- Inside fillets ------------------------------------------------
+    # Five inside corners where the side wall meets a flange, or where
+    # two flanges meet each other. Each edge is picked by its axis
+    # direction and by the center coordinates that uniquely identify
+    # the inside corner it belongs to. Apply BEFORE cutting grooves so
+    # the fillet selectors only see the five pristine corner edges.
+    _tol = 0.01
+    _wt = cfg.WALL_THK
+    _ft = cfg.FLANGE_THK
+    _cz = cfg.BOX_HEIGHT - cfg.FLANGE_THK
+    _all = left_side_builder.edges()
+    _inside_edges = (
+        # floor <-> wall (along Y)
+        _all.filter_by(Axis.Y)
+            .filter_by_position(Axis.X, _wt - _tol, _wt + _tol)
+            .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
+        # ceiling <-> wall (along Y)
+        + _all.filter_by(Axis.Y)
+              .filter_by_position(Axis.X, _wt - _tol, _wt + _tol)
+              .filter_by_position(Axis.Z, _cz - _tol, _cz + _tol)
+        # front <-> wall (along Z)
+        + _all.filter_by(Axis.Z)
+              .filter_by_position(Axis.X, _wt - _tol, _wt + _tol)
+              .filter_by_position(Axis.Y, _ft - _tol, _ft + _tol)
+        # floor <-> front (along X)
+        + _all.filter_by(Axis.X)
+              .filter_by_position(Axis.Y, _ft - _tol, _ft + _tol)
+              .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
+        # ceiling <-> front (along X)
+        + _all.filter_by(Axis.X)
+              .filter_by_position(Axis.Y, _ft - _tol, _ft + _tol)
+              .filter_by_position(Axis.Z, _cz - _tol, _cz + _tol)
+    )
+    fillet(_inside_edges, cfg.INSIDE_FILLET_R)
+
+    # --- Slide-in grooves in the three flanges -------------------------
     _groove_cx = cfg.WALL_THK + cfg.FLANGE_WIDTH - cfg.GROOVE_DEPTH / 2 + cfg.EPS / 2
+
+    # bottom-panel groove in the floor flange
     with Locations((_groove_cx,
                     cfg.BOX_DEPTH / 2,
                     cfg.FLANGE_THK / 2)):
@@ -113,12 +165,7 @@ with BuildPart() as left_side_builder:
             cfg.GROOVE_SLOT,
             mode=Mode.SUBTRACT)
 
-    # --- Ceiling flange + lid groove -----------------------------------
-    with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
-                    cfg.BOX_DEPTH / 2,
-                    cfg.BOX_HEIGHT - cfg.FLANGE_THK / 2)):
-        Box(cfg.FLANGE_WIDTH, cfg.BOX_DEPTH, cfg.FLANGE_THK)
-
+    # lid groove in the ceiling flange
     with Locations((_groove_cx,
                     cfg.BOX_DEPTH / 2,
                     cfg.BOX_HEIGHT - cfg.FLANGE_THK / 2)):
@@ -127,12 +174,7 @@ with BuildPart() as left_side_builder:
             cfg.GROOVE_SLOT,
             mode=Mode.SUBTRACT)
 
-    # --- Front flange + front-panel groove -----------------------------
-    with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
-                    cfg.FLANGE_THK / 2,
-                    cfg.BOX_HEIGHT / 2)):
-        Box(cfg.FLANGE_WIDTH, cfg.FLANGE_THK, cfg.BOX_HEIGHT)
-
+    # front-panel groove in the front flange
     with Locations((_groove_cx,
                     cfg.FLANGE_THK / 2,
                     cfg.BOX_HEIGHT / 2)):

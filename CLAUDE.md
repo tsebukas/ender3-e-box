@@ -74,6 +74,21 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
 - Part files and the assembly script live at the project root (or a
   future `src/` folder) once created.
 
+## How the part scripts relate
+
+- `left_side.py` is the single source of truth for the side-wall
+  geometry. Edit it directly.
+- `right_side.py` is a PURE MIRROR of `left_side` across the YZ plane
+  at `X = BOX_WIDTH / 2` (`right_side = mirror(left_side, ...)`).
+  Every geometry change in `left_side.py` propagates automatically.
+  Do NOT add independent geometry to `right_side.py`, and do NOT
+  run it to "verify" a left-side edit - running `left_side.py` alone
+  is enough. Only run `right_side.py` when the user asks about the
+  right piece specifically, or when the mirroring itself was changed.
+- `assembly.py` imports `left_side` and `right_side` and wraps them in
+  a single `Compound`. It adds no independent geometry; each part
+  module already places itself in the shared global frame.
+
 ## Working with build123d
 
 - Build parts with the context-manager builder API: wrap the whole part

@@ -30,6 +30,9 @@ PANEL_THK    = 3.0                # nominal thickness of bottom/lid/front panels
 GROOVE_SLOT  = PANEL_THK + 0.3    # slot opening perpendicular to the panel face
 GROOVE_DEPTH = 5.0                # how far the groove bites into the flange (X)
 
+# --- Cosmetic / stress-relief fillets ------------------------------------
+INSIDE_FILLET_R = 1.0   # radius on the interior edges where wall meets flanges
+
 # --- Printer frame profile -----------------------------------------------
 PROFILE_SIZE = 40.0   # 4040 aluminium profile cross-section (square)
 
