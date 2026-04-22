@@ -38,10 +38,10 @@ import config as cfg
 # Derived geometry for the V-slot engaging rails
 # ---------------------------------------------------------------------------
 # Arrow cross-section, drawn on Plane.XZ (local x = global X, local y =
-# global Z). The tongue is a straight rectangle that fits the 6.77 mm
-# neck; the foot is a hexagon - flat back at 11 mm chamber width
-# immediately past the neck, tapering walls, and a short flat tip that
-# matches the V-slot chamber's flat back wall:
+# global Z). The tongue is a straight rectangle that fits through the
+# V-slot neck; the foot widens to the full chamber width right past the
+# neck, stays parallel for VSLOT_CHAMBER_FLAT_DEPTH, then tapers to a
+# short flat tip matching the chamber's back wall:
 #
 #     |<--- foot ----->|<-- tongue -->|
 #        +-------------+              |
@@ -53,17 +53,17 @@ import config as cfg
 #        +-------------+              |
 #                             wall outer face (X = -WALL_THK)
 
-_RAIL_NECK_W = cfg.VSLOT_NECK_WIDTH  - cfg.RAIL_CLEARANCE    # tongue Z
-_RAIL_FOOT_W = cfg.VSLOT_INNER_WIDTH - cfg.RAIL_CLEARANCE    # foot flat Z
-_RAIL_TIP_W  = cfg.VSLOT_BACK_WIDTH  - cfg.RAIL_CLEARANCE    # tip flat Z
+_RAIL_NECK_W = cfg.VSLOT_NECK_WIDTH         - cfg.VSLOT_CLEARANCE    # tongue Z
+_RAIL_FOOT_W = cfg.VSLOT_CHAMBER_WIDTH      - cfg.VSLOT_CLEARANCE    # foot flat Z
+_RAIL_TIP_W  = cfg.VSLOT_CHAMBER_BACK_WIDTH - cfg.VSLOT_CLEARANCE    # tip flat Z
 
 _WALL_OUTER_X     = -cfg.WALL_THK
 _TONGUE_END_X     = _WALL_OUTER_X - cfg.VSLOT_NECK_DEPTH
-_FOOT_FLAT_END_X  = _TONGUE_END_X - cfg.RAIL_FOOT_FLAT_DEP
-_FOOT_TIP_X       = _WALL_OUTER_X - cfg.VSLOT_INNER_DEPTH
+_FOOT_FLAT_END_X  = _TONGUE_END_X - cfg.VSLOT_CHAMBER_FLAT_DEPTH
+_FOOT_TIP_X       = _WALL_OUTER_X - cfg.VSLOT_POCKET_DEPTH
 
-_RAIL_Z_LO = cfg.BOX_HEIGHT / 2 - cfg.RAIL_SPACING / 2
-_RAIL_Z_HI = cfg.BOX_HEIGHT / 2 + cfg.RAIL_SPACING / 2
+_RAIL_Z_LO = cfg.BOX_HEIGHT / 2 - cfg.VSLOT_SPACING / 2
+_RAIL_Z_HI = cfg.BOX_HEIGHT / 2 + cfg.VSLOT_SPACING / 2
 
 
 def _rail_polygon_pts(z_center: float) -> list[tuple[float, float]]:
@@ -158,25 +158,29 @@ left_side = left_side_builder.part
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    out_dir = Path(__file__).parent / "build"
-    out_dir.mkdir(exist_ok=True)
+    if cfg.EXPORT_STEP or cfg.EXPORT_STL:
+        out_dir = Path(__file__).parent / "build"
+        out_dir.mkdir(exist_ok=True)
 
-    step_path = out_dir / "left_side.step"
-    stl_path  = out_dir / "left_side.stl"
+        if cfg.EXPORT_STEP:
+            step_path = out_dir / "left_side.step"
+            export_step(left_side, str(step_path))
+            print(f"left_side STEP -> {step_path}")
 
-    export_step(left_side, str(step_path))
-    export_stl(left_side, str(stl_path))
+        if cfg.EXPORT_STL:
+            stl_path = out_dir / "left_side.stl"
+            export_stl(left_side, str(stl_path))
+            print(f"left_side STL  -> {stl_path}")
 
     bb = left_side.bounding_box()
-    print(f"left_side STEP -> {step_path}")
-    print(f"left_side STL  -> {stl_path}")
     print(f"bounding box min = {tuple(round(v, 2) for v in tuple(bb.min))}")
     print(f"bounding box max = {tuple(round(v, 2) for v in tuple(bb.max))}")
     print(f"volume           = {left_side.volume:.1f} mm^3")
 
-    try:
-        from ocp_vscode import show
-    except ImportError:
-        print("ocp_vscode not available - skipping show()")
-    else:
-        show(left_side, names=["left_side"])
+    if cfg.SHOW_IN_VIEWER:
+        try:
+            from ocp_vscode import show
+        except ImportError:
+            print("ocp_vscode not available - skipping show()")
+        else:
+            show(left_side, names=["left_side"])

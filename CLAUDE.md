@@ -13,7 +13,7 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
 
 - Enclosure outer envelope (fixed, shared via `config.py`):
   - `BOX_WIDTH  = 250` mm along X (horizontal, along printer width)
-  - `BOX_DEPTH  = 125` mm along Y (horizontal depth)
+  - `BOX_DEPTH  = 120` mm along Y (horizontal depth)
   - `BOX_HEIGHT =  40` mm along Z (vertical; matches the 4040 profile
     cross-section so the enclosure sits flush with the frame).
 - Every part module uses the same global coordinate frame
@@ -21,8 +21,9 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
 - Printer build volume limits a single part to ~220 mm, so the enclosure
   MUST be split. The chosen split:
   - Two mirrored side pieces (left and right END CAPS of the box),
-    each with integrated 40 mm wide floor, ceiling and front flanges
-    that carry grooves for the sliding panels.
+    each with integrated floor, ceiling and front flanges (width set
+    by `FLANGE_WIDTH` in `config.py`, currently 20 mm) that carry
+    grooves for the sliding panels.
   - A separate bottom panel that slides into the floor-flange grooves.
   - A separate lid that slides into the ceiling-flange grooves.
   - A separate front panel (holds connector cutouts for whatever board
@@ -30,11 +31,13 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
 - Sides attach to the printer frame via TWO T-shape rails on the outer
   face of each side wall. The rail profile is derived from
   `lahteylesanne/4040_v-slot.jpg`, which shows a 4040 profile (40 x 40
-  mm) whose face carries TWO V-slots (10 mm slot opening, 6.77 mm neck,
-  1.80 mm lip, 4.30 mm total depth, 11 mm inner chamber). Both rails
-  run along Y for the full box depth; the box slides into the profile
-  from one Y-end. The wall's outer face sits flush with the profile
-  face.
+  mm) whose face carries TWO V-slots: a narrow neck opens into a wider
+  inner chamber that tapers to a flat back wall. Exact dimensions live
+  in `config.py` under the `VSLOT_*` constants (neck width/depth,
+  chamber width/back width/flat depth, pocket depth, slot spacing and
+  fit clearance). Both rails run along Y for the full box depth; the
+  box slides into the profile from one Y-end. The wall's outer face
+  sits flush with the profile face.
 - Default wall thickness is 2 mm. Integrated flanges are 5 mm thick
   (thicker than the wall so they can host a 5 mm deep groove).
 - The front panel and bottom panel are deliberately isolated so swapping
@@ -55,10 +58,14 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
   `config.py` at the project root. Every part module imports from there
   (`import config as cfg`) instead of hard-coding numbers locally.
 - Each part module's `if __name__ == "__main__":` block must:
-    1. write STEP and STL exports into a local `build/` directory, and
+    1. write STEP and STL exports into a local `build/` directory,
+       each gated on `cfg.EXPORT_STEP` and `cfg.EXPORT_STL`, and
     2. call `ocp_vscode.show(part, names=[...])` so the part renders in
-       the OCP CAD Viewer (wrap the import in try/except so the script
-       still runs headless).
+       the OCP CAD Viewer, gated on `cfg.SHOW_IN_VIEWER` (wrap the
+       `from ocp_vscode import show` import in try/except so the script
+       still runs headless when the viewer package is missing).
+  Do not hard-code "always export" / "always show" - respect the flags
+  so batch/CI runs can turn any of them off without editing every part.
 
 ## Repository layout convention
 
