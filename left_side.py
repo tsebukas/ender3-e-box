@@ -24,6 +24,7 @@ from build123d import (
     BuildPart,
     BuildSketch,
     Box,
+    Circle,
     Locations,
     Mode,
     Plane,
@@ -113,10 +114,25 @@ with BuildPart() as left_side_builder:
         Box(cfg.FLANGE_WIDTH, cfg.BOX_DEPTH, cfg.FLANGE_THK)
 
     # --- Front flange --------------------------------------------------
+    # Moved OUTSIDE the box envelope in Y (Y in [-FLANGE_THK, 0]) so its
+    # front face is flush with the profile end cap instead of eating
+    # into the box interior.
     with Locations((cfg.WALL_THK + cfg.FLANGE_WIDTH / 2,
-                    cfg.FLANGE_THK / 2,
+                    -cfg.FLANGE_THK / 2,
                     cfg.BOX_HEIGHT / 2)):
         Box(cfg.FLANGE_WIDTH, cfg.FLANGE_THK, cfg.BOX_HEIGHT)
+
+    # --- Profile end cap ----------------------------------------------
+    # 42 x 40 mm plate (PROFILE_SIZE + WALL_THK wide, PROFILE_SIZE tall)
+    # covering the 4040 V-slot profile end AND the wall's outer face -
+    # extending the cap by WALL_THK in +X closes the gap to the front
+    # flange at X=WALL_THK so the whole front becomes one manifold plate.
+    with Locations(((-cfg.PROFILE_SIZE + cfg.WALL_THK) / 2,
+                    -cfg.FLANGE_THK / 2,
+                    cfg.PROFILE_SIZE / 2)):
+        Box(cfg.PROFILE_SIZE + cfg.WALL_THK,
+            cfg.FLANGE_THK,
+            cfg.PROFILE_SIZE)
 
     # --- Inside fillets ------------------------------------------------
     # Five inside corners where the side wall meets a flange, or where
@@ -124,6 +140,8 @@ with BuildPart() as left_side_builder:
     # direction and by the center coordinates that uniquely identify
     # the inside corner it belongs to. Apply BEFORE cutting grooves so
     # the fillet selectors only see the five pristine corner edges.
+    # The front plate now sits at Y in [-FLANGE_THK, 0], so the three
+    # front-related inside corners are at Y=0 (not Y=FLANGE_THK).
     _tol = 0.01
     _wt = cfg.WALL_THK
     _ft = cfg.FLANGE_THK
@@ -138,17 +156,17 @@ with BuildPart() as left_side_builder:
         + _all.filter_by(Axis.Y)
               .filter_by_position(Axis.X, _wt - _tol, _wt + _tol)
               .filter_by_position(Axis.Z, _cz - _tol, _cz + _tol)
-        # front <-> wall (along Z)
+        # front plate <-> wall (along Z)
         + _all.filter_by(Axis.Z)
               .filter_by_position(Axis.X, _wt - _tol, _wt + _tol)
-              .filter_by_position(Axis.Y, _ft - _tol, _ft + _tol)
-        # floor <-> front (along X)
+              .filter_by_position(Axis.Y, -_tol, _tol)
+        # floor <-> front plate (along X)
         + _all.filter_by(Axis.X)
-              .filter_by_position(Axis.Y, _ft - _tol, _ft + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
               .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
-        # ceiling <-> front (along X)
+        # ceiling <-> front plate (along X)
         + _all.filter_by(Axis.X)
-              .filter_by_position(Axis.Y, _ft - _tol, _ft + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
               .filter_by_position(Axis.Z, _cz - _tol, _cz + _tol)
     )
     fillet(_inside_edges, cfg.INSIDE_FILLET_R)
@@ -157,8 +175,12 @@ with BuildPart() as left_side_builder:
     _groove_cx = cfg.WALL_THK + cfg.FLANGE_WIDTH - cfg.GROOVE_DEPTH / 2 + cfg.EPS / 2
 
     # bottom-panel groove in the floor flange
+    # Shifted forward by FLANGE_THK so the groove opens at the front
+    # face (Y = -FLANGE_THK) - the bottom panel slides in from the
+    # front - while leaving a FLANGE_THK-thick stopper of uncut floor
+    # flange at the back (Y near BOX_DEPTH).
     with Locations((_groove_cx,
-                    cfg.BOX_DEPTH / 2,
+                    cfg.BOX_DEPTH / 2 - cfg.FLANGE_THK,
                     cfg.FLANGE_THK / 2)):
         Box(cfg.GROOVE_DEPTH + cfg.EPS,
             cfg.BOX_DEPTH + 2 * cfg.EPS,
@@ -166,8 +188,10 @@ with BuildPart() as left_side_builder:
             mode=Mode.SUBTRACT)
 
     # lid groove in the ceiling flange
+    # Same forward shift as the floor groove so the lid also slides in
+    # from the front and lands against a back stopper.
     with Locations((_groove_cx,
-                    cfg.BOX_DEPTH / 2,
+                    cfg.BOX_DEPTH / 2 - cfg.FLANGE_THK,
                     cfg.BOX_HEIGHT - cfg.FLANGE_THK / 2)):
         Box(cfg.GROOVE_DEPTH + cfg.EPS,
             cfg.BOX_DEPTH + 2 * cfg.EPS,
@@ -176,12 +200,42 @@ with BuildPart() as left_side_builder:
 
     # front-panel groove in the front flange
     with Locations((_groove_cx,
-                    cfg.FLANGE_THK / 2,
+                    -cfg.FLANGE_THK / 2,
                     cfg.BOX_HEIGHT / 2)):
         Box(cfg.GROOVE_DEPTH + cfg.EPS,
             cfg.GROOVE_SLOT,
             cfg.BOX_HEIGHT + 2 * cfg.EPS,
             mode=Mode.SUBTRACT)
+
+    # --- Remove front-lip corner nubs ----------------------------------
+    # The ~0.85 mm-thick front lip that closes the front-panel groove
+    # at Y = -FLANGE_THK would leave tiny nubs where the floor and lid
+    # grooves cross it - one in the lower-left corner, one in the
+    # upper-left corner of the Front flange. Cut them out so both
+    # horizontal slots open cleanly at the front face.
+    _nub_y_dim    = (cfg.FLANGE_THK - cfg.GROOVE_SLOT) / 2 + 2 * cfg.EPS
+    _nub_y_center = -cfg.FLANGE_THK + _nub_y_dim / 2 - cfg.EPS
+    _nub_z_dim    = (cfg.FLANGE_THK - cfg.GROOVE_SLOT) / 2 + 2 * cfg.EPS
+
+    with Locations((_groove_cx, _nub_y_center, _nub_z_dim / 2 - cfg.EPS)):
+        Box(cfg.GROOVE_DEPTH + cfg.EPS, _nub_y_dim, _nub_z_dim,
+            mode=Mode.SUBTRACT)
+
+    with Locations((_groove_cx, _nub_y_center,
+                    cfg.BOX_HEIGHT - _nub_z_dim / 2 + cfg.EPS)):
+        Box(cfg.GROOVE_DEPTH + cfg.EPS, _nub_y_dim, _nub_z_dim,
+            mode=Mode.SUBTRACT)
+
+    # --- Screw holes through the profile end cap -----------------------
+    # Two 5 mm through-holes on the diagonal from (X=-PROFILE_SIZE, Z=0)
+    # to (X=0, Z=PROFILE_SIZE), each 10 mm from both edges. The diagonal
+    # uses the 40 x 40 profile footprint - the +WALL_THK extension that
+    # reaches the front flange is ignored when placing the holes.
+    with BuildSketch(Plane.XZ) as _hole_sketch:
+        with Locations((-cfg.PROFILE_SIZE + 10.0, 10.0),
+                       (-10.0, cfg.PROFILE_SIZE - 10.0)):
+            Circle(radius=2.5)
+    extrude(amount=cfg.FLANGE_THK + cfg.EPS, mode=Mode.SUBTRACT)
 
     # --- Two V-slot engaging arrow-shaped rails ------------------------
     # Sketch both rail cross-sections on Plane.XZ at Y=0 and extrude
@@ -193,6 +247,25 @@ with BuildPart() as left_side_builder:
                 Polyline(*_rail_polygon_pts(_z), close=True)
             make_face()
     extrude(amount=-cfg.BOX_DEPTH)
+
+    # --- Front-plate outside fillets -----------------------------------
+    # 2 mm fillet on three outer edges of the combined profile-cap +
+    # front-flange plate at the front face (Y = -FLANGE_THK): top
+    # (Z=BOX_HEIGHT), bottom (Z=0), and cap-end (X=-PROFILE_SIZE). The
+    # front-panel groove side (X=WALL_THK+FLANGE_WIDTH) stays sharp.
+    _fp_all = left_side_builder.edges()
+    _fp_edges = (
+        _fp_all.filter_by(Axis.X)
+               .filter_by_position(Axis.Y, -cfg.FLANGE_THK - _tol, -cfg.FLANGE_THK + _tol)
+               .filter_by_position(Axis.Z, cfg.BOX_HEIGHT - _tol, cfg.BOX_HEIGHT + _tol)
+        + _fp_all.filter_by(Axis.X)
+                 .filter_by_position(Axis.Y, -cfg.FLANGE_THK - _tol, -cfg.FLANGE_THK + _tol)
+                 .filter_by_position(Axis.Z, -_tol, _tol)
+        + _fp_all.filter_by(Axis.Z)
+                 .filter_by_position(Axis.X, -cfg.PROFILE_SIZE - _tol, -cfg.PROFILE_SIZE + _tol)
+                 .filter_by_position(Axis.Y, -cfg.FLANGE_THK - _tol, -cfg.FLANGE_THK + _tol)
+    )
+    fillet(_fp_edges, cfg.OUTSIDE_FILLET_R)
 
 
 left_side = left_side_builder.part
