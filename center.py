@@ -251,6 +251,38 @@ with BuildPart() as center_builder:
               .filter_by_position(Axis.X, _SIDE_RIGHT_X - _tol, _TOP_RIGHT_X + _tol)
               .filter_by_position(Axis.Y, -_tol, _tol)
               .filter_by_position(Axis.Z, _cz_high - _tol, _cz_high + _tol)
+        # central wall <-> wide front flange (along Z), where the
+        # central wall's outer X face meets the front flange's interior
+        # Y=0 face above the floor flanges and below the pocket plate
+        + _all.filter_by(Axis.Z)
+              .filter_by_position(Axis.X, _WALL_LEFT_X  - _tol, _WALL_LEFT_X  + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
+              .filter_by_position(Axis.Z, _ft - _tol, _cz_low + _tol)
+        + _all.filter_by(Axis.Z)
+              .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _WALL_RIGHT_X + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
+              .filter_by_position(Axis.Z, _ft - _tol, _cz_low + _tol)
+        # pocket plate side + side wall <-> wide front flange (along Z),
+        # where the merged plate-edge and side-wall outer face meets the
+        # front flange's interior Y=0 face on each upper U-arm
+        + _all.filter_by(Axis.Z)
+              .filter_by_position(Axis.X, _SIDE_LEFT_X  - _tol, _SIDE_LEFT_X  + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
+              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_high + _tol)
+        + _all.filter_by(Axis.Z)
+              .filter_by_position(Axis.X, _SIDE_RIGHT_X - _tol, _SIDE_RIGHT_X + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
+              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_high + _tol)
+        # pocket plate bottom <-> wide front flange (along X), each half
+        # of the plate bottom edge that meets the front flange interior
+        + _all.filter_by(Axis.X)
+              .filter_by_position(Axis.X, _SIDE_LEFT_X  - _tol, _WALL_LEFT_X  + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
+              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
+        + _all.filter_by(Axis.X)
+              .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _SIDE_RIGHT_X + _tol)
+              .filter_by_position(Axis.Y, -_tol, _tol)
+              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
     )
     fillet(_inside_edges, cfg.INSIDE_FILLET_R)
 
