@@ -220,23 +220,35 @@ with BuildPart() as center_builder:
 
     # --- Inside fillets ------------------------------------------------
     # Apply BEFORE cutting grooves and bottom-passage so the selectors
-    # only see pristine corner edges.
+    # only see pristine corner edges. Only X- and Z-axis inside corners
+    # are filleted; Y-axis edges run along the central wall + side wall
+    # roots and the fillet operation is unreliable there (do not try).
+    #
+    # Note: the central wall merges the LEFT and RIGHT inside corners
+    # along the front flange's interior at Z=FLANGE_THK and Z=CENTER_HEIGHT-PLATE_THK
+    # into one continuous X-axis edge each (spanning across the wall
+    # rather than splitting into two halves). Selectors below match the
+    # full merged span, not per-half ranges.
     _tol = 0.01
     _ft  = cfg.FLANGE_THK
     _cz_low  = cfg.CENTER_HEIGHT - _PLATE_THK   # plate bottom Z
     _cz_high = cfg.BOX_HEIGHT - cfg.FLANGE_THK  # ceiling-flange bottom Z
     _all = center_builder.edges()
     _inside_edges = (
-        # narrow-floor <-> wide front flange (along X), each half
+        # narrow-floor + wall <-> wide front flange (along X), one merged
+        # edge spanning both floor halves and the wall in between
         _all.filter_by(Axis.X)
-              .filter_by_position(Axis.X, _FLOOR_LEFT_FAR_X  - _tol, _WALL_LEFT_X  + _tol)
+              .filter_by_position(Axis.X, _FLOOR_LEFT_FAR_X - _tol, _FLOOR_RIGHT_FAR_X + _tol)
               .filter_by_position(Axis.Y, -_tol, _tol)
               .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
+        # pocket plate bottom + wall <-> wide front flange (along X), one
+        # merged edge spanning the whole plate bottom across the wall
         + _all.filter_by(Axis.X)
-              .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _FLOOR_RIGHT_FAR_X + _tol)
+              .filter_by_position(Axis.X, _SIDE_LEFT_X - _tol, _SIDE_RIGHT_X + _tol)
               .filter_by_position(Axis.Y, -_tol, _tol)
-              .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
+              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
         # wide ceiling <-> wide front flange (along X), each half
+        # (split by the carrier pocket cut, so two separate edges)
         + _all.filter_by(Axis.X)
               .filter_by_position(Axis.X, _TOP_LEFT_X  - _tol, _SIDE_LEFT_X  + _tol)
               .filter_by_position(Axis.Y, -_tol, _tol)
@@ -256,16 +268,6 @@ with BuildPart() as center_builder:
               .filter_by_position(Axis.X, _SIDE_RIGHT_X - _tol, _SIDE_RIGHT_X + _tol)
               .filter_by_position(Axis.Y, -_tol, _tol)
               .filter_by_position(Axis.Z, _cz_low - _tol, _cz_high + _tol)
-        # pocket plate bottom <-> wide front flange (along X), each half
-        # of the plate bottom edge that meets the front flange interior
-        + _all.filter_by(Axis.X)
-              .filter_by_position(Axis.X, _SIDE_LEFT_X  - _tol, _WALL_LEFT_X  + _tol)
-              .filter_by_position(Axis.Y, -_tol, _tol)
-              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
-        + _all.filter_by(Axis.X)
-              .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _SIDE_RIGHT_X + _tol)
-              .filter_by_position(Axis.Y, -_tol, _tol)
-              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
     )
     fillet(_inside_edges, cfg.INSIDE_FILLET_R)
 

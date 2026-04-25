@@ -83,6 +83,21 @@ Geometry:
 - The wide front flange would otherwise block the bottom-panel halves
   from sliding in. A horizontal passage cutout at the panel's Z range
   opens each U-half from its outer X end inward to the bottom groove.
+- The narrow stem (floor flanges + central wall) is `CENTER_DEPTH`
+  long in Y (currently 5 mm longer than `BOX_DEPTH`), so it pokes out
+  the back of the box. The wide top section (pocket plate, side walls,
+  lid + front flange halves) still spans only `BOX_DEPTH`. The Y tail
+  at `Y in [BOX_DEPTH, CENTER_DEPTH]` sticks past the rear of the
+  enclosure to anchor the divider against the Y-axis carrier's back
+  end. Keep this asymmetry in mind when adding geometry: pieces tied
+  to the box envelope use `BOX_DEPTH`, pieces tied to the narrow
+  stem use `CENTER_DEPTH`.
+- The central wall has a horizontal pass-through opening for cabling
+  between the two box halves. The opening leaves `CENTER_TAIL` mm of
+  solid wall at the back (Y end). Its Z extent is bounded by
+  `FLANGE_THK` below (above the floor flanges) and `WALL_THK` above
+  (below the pocket plate); the front end is rounded with a half-circle
+  whose radius equals half the opening height, for printability.
 
 Manifold gotcha: the central wall and the wide front flange touch only
 along a single line (X = wall edge, Y = 0) unless the wall is extended
@@ -91,6 +106,19 @@ treats the union as non-manifold and `fillet` later fails on the inside
 front-wall corners. Every Y-extending divider piece (central wall,
 side walls) therefore extends to `Y = -FLANGE_THK`, sharing a 2D face
 with the wide front flange. Future modifications must preserve this.
+
+Fillet edge gotcha: only X- and Z-axis inside corners are filleted on
+the divider; Y-axis edges along the central / side wall roots fail
+under OCCT and are deliberately skipped. Where a horizontal inside
+corner crosses the central wall (the floor's front-top corner at
+Z=FLANGE_THK and the pocket plate's front-bottom corner at
+Z=CENTER_HEIGHT-WALL_THK), OCCT merges the LEFT and RIGHT halves into
+one continuous X-axis edge spanning across the wall - one selector
+per row, NOT per half. Selectors that filter by half ranges
+(_FLOOR_LEFT_FAR_X..._WALL_LEFT_X etc.) silently match nothing.
+The wide ceiling row stays split into two halves because the carrier
+pocket cut sits between them; that selector still uses per-half
+ranges.
 
 ## Toolchain
 
