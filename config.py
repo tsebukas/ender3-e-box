@@ -56,6 +56,8 @@ PROFILE_SIZE = 40.0   # 4040 aluminium profile cross-section (square)
 # it doesn't cantilever in mid-air. Bottom of the divider stays at the
 # original narrow stem width (2 * FLANGE_WIDTH + WALL_THK).
 CENTER_TOP_WIDTH = PROFILE_SIZE + 2 * FLANGE_WIDTH + 2 * WALL_THK   # 56 mm
+CENTER_DEPTH = 125.0
+CENTER_TAIL = 10.0
 
 # --- V-slot profile reference (from lahteylesanne/4040_v-slot.jpg) -------
 # The 4040 profile's face carries TWO V-slots (not the single V-slot of

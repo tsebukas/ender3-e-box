@@ -52,6 +52,7 @@ from build123d import (
     Mode,
     Plane,
     Polyline,
+    Cylinder,
     export_step,
     export_stl,
     extrude,
@@ -146,12 +147,27 @@ with BuildPart() as center_builder:
 
     # --- Narrow floor flanges ------------------------------------------
     for _cx in (_FLOOR_LEFT_CX, _FLOOR_RIGHT_CX):
-        with Locations((_cx, cfg.BOX_DEPTH / 2, cfg.FLANGE_THK / 2)):
-            Box(cfg.FLANGE_WIDTH, cfg.BOX_DEPTH, cfg.FLANGE_THK)
+        with Locations((_cx, cfg.CENTER_DEPTH / 2, cfg.FLANGE_THK / 2)):
+            Box(cfg.FLANGE_WIDTH, cfg.CENTER_DEPTH, cfg.FLANGE_THK)
 
     # --- Central wall, extended forward to share a face with the front -
-    with Locations((_CX, _WALL_CY, cfg.CENTER_HEIGHT / 2)):
-        Box(cfg.WALL_THK, _WALL_LEN_Y, cfg.CENTER_HEIGHT)
+    with Locations((_CX, (cfg.CENTER_DEPTH - cfg.FLANGE_THK) / 2, cfg.CENTER_HEIGHT / 2)):
+        Box(cfg.WALL_THK, cfg.CENTER_DEPTH + cfg.FLANGE_THK, cfg.CENTER_HEIGHT)
+
+    # --- Opening in Central wall, rounded ening for simplier printing -
+    _center_opening_height = cfg.CENTER_HEIGHT - cfg.FLANGE_THK - cfg.WALL_THK
+    _center_opening_radius = _center_opening_height / 2
+    with Locations((_CX, (cfg.CENTER_DEPTH  - cfg.CENTER_TAIL - _center_opening_radius) / 2, (cfg.CENTER_HEIGHT + cfg.FLANGE_THK - cfg.WALL_THK) / 2)):
+        Box(cfg.WALL_THK + 2 * cfg.EPS,
+            cfg.CENTER_DEPTH  - cfg.CENTER_TAIL - _center_opening_radius,
+            _center_opening_height,
+            mode=Mode.SUBTRACT)
+        
+    with Locations((_CX, cfg.CENTER_DEPTH  - cfg.CENTER_TAIL - _center_opening_radius, (cfg.CENTER_HEIGHT + cfg.FLANGE_THK - cfg.WALL_THK) / 2)):
+        Cylinder(_center_opening_radius,
+            cfg.WALL_THK + 2 * cfg.EPS,
+            rotation=(0,90,0),
+            mode=Mode.SUBTRACT)
 
     # --- Pocket floor plate (where the top rails sprout from) ----------
     # Spans PROFILE_SIZE + 2 * WALL_THK so the side walls drop onto its
@@ -211,30 +227,8 @@ with BuildPart() as center_builder:
     _cz_high = cfg.BOX_HEIGHT - cfg.FLANGE_THK  # ceiling-flange bottom Z
     _all = center_builder.edges()
     _inside_edges = (
-        # floor <-> wall (along Y)
-        _all.filter_by(Axis.Y)
-            .filter_by_position(Axis.X, _WALL_LEFT_X  - _tol, _WALL_LEFT_X  + _tol)
-            .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
-        + _all.filter_by(Axis.Y)
-              .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _WALL_RIGHT_X + _tol)
-              .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
-        # plate bottom <-> wall (along Y)
-        + _all.filter_by(Axis.Y)
-              .filter_by_position(Axis.X, _WALL_LEFT_X  - _tol, _WALL_LEFT_X  + _tol)
-              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
-        + _all.filter_by(Axis.Y)
-              .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _WALL_RIGHT_X + _tol)
-              .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
-        # ceiling flange <-> side wall (along Y), where the lid flange
-        # tucks into the side wall at the inner ceiling-flange corner
-        + _all.filter_by(Axis.Y)
-              .filter_by_position(Axis.X, _SIDE_LEFT_X  - _tol, _SIDE_LEFT_X  + _tol)
-              .filter_by_position(Axis.Z, _cz_high - _tol, _cz_high + _tol)
-        + _all.filter_by(Axis.Y)
-              .filter_by_position(Axis.X, _SIDE_RIGHT_X - _tol, _SIDE_RIGHT_X + _tol)
-              .filter_by_position(Axis.Z, _cz_high - _tol, _cz_high + _tol)
         # narrow-floor <-> wide front flange (along X), each half
-        + _all.filter_by(Axis.X)
+        _all.filter_by(Axis.X)
               .filter_by_position(Axis.X, _FLOOR_LEFT_FAR_X  - _tol, _WALL_LEFT_X  + _tol)
               .filter_by_position(Axis.Y, -_tol, _tol)
               .filter_by_position(Axis.Z, _ft - _tol, _ft + _tol)
@@ -251,17 +245,6 @@ with BuildPart() as center_builder:
               .filter_by_position(Axis.X, _SIDE_RIGHT_X - _tol, _TOP_RIGHT_X + _tol)
               .filter_by_position(Axis.Y, -_tol, _tol)
               .filter_by_position(Axis.Z, _cz_high - _tol, _cz_high + _tol)
-        # central wall <-> wide front flange (along Z), where the
-        # central wall's outer X face meets the front flange's interior
-        # Y=0 face above the floor flanges and below the pocket plate
-        + _all.filter_by(Axis.Z)
-              .filter_by_position(Axis.X, _WALL_LEFT_X  - _tol, _WALL_LEFT_X  + _tol)
-              .filter_by_position(Axis.Y, -_tol, _tol)
-              .filter_by_position(Axis.Z, _ft - _tol, _cz_low + _tol)
-        + _all.filter_by(Axis.Z)
-              .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _WALL_RIGHT_X + _tol)
-              .filter_by_position(Axis.Y, -_tol, _tol)
-              .filter_by_position(Axis.Z, _ft - _tol, _cz_low + _tol)
         # pocket plate side + side wall <-> wide front flange (along Z),
         # where the merged plate-edge and side-wall outer face meets the
         # front flange's interior Y=0 face on each upper U-arm
@@ -292,10 +275,10 @@ with BuildPart() as center_builder:
     _bottom_gx_right = _FLOOR_RIGHT_FAR_X - cfg.GROOVE_DEPTH / 2 + cfg.EPS / 2
     for _gx in (_bottom_gx_left, _bottom_gx_right):
         with Locations((_gx,
-                        cfg.BOX_DEPTH / 2 - cfg.FLANGE_THK,
+                        cfg.CENTER_DEPTH / 2 - cfg.FLANGE_THK,
                         cfg.FLANGE_THK / 2)):
             Box(cfg.GROOVE_DEPTH + cfg.EPS,
-                cfg.BOX_DEPTH + 2 * cfg.EPS + 2 * cfg.FLANGE_THK,
+                cfg.CENTER_DEPTH + 2 * cfg.EPS + 2 * cfg.FLANGE_THK,
                 cfg.GROOVE_SLOT,
                 mode=Mode.SUBTRACT)
 
