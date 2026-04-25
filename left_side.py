@@ -183,7 +183,7 @@ with BuildPart() as left_side_builder:
                     cfg.BOX_DEPTH / 2 - cfg.FLANGE_THK,
                     cfg.FLANGE_THK / 2)):
         Box(cfg.GROOVE_DEPTH + cfg.EPS,
-            cfg.BOX_DEPTH + 2 * cfg.EPS,
+            cfg.BOX_DEPTH + 2 * cfg.EPS + 2 * cfg.FLANGE_THK,
             cfg.GROOVE_SLOT,
             mode=Mode.SUBTRACT)
 
@@ -194,7 +194,7 @@ with BuildPart() as left_side_builder:
                     cfg.BOX_DEPTH / 2 - cfg.FLANGE_THK,
                     cfg.BOX_HEIGHT - cfg.FLANGE_THK / 2)):
         Box(cfg.GROOVE_DEPTH + cfg.EPS,
-            cfg.BOX_DEPTH + 2 * cfg.EPS,
+            cfg.BOX_DEPTH + 2 * cfg.EPS + 2 * cfg.FLANGE_THK,
             cfg.GROOVE_SLOT,
             mode=Mode.SUBTRACT)
 
