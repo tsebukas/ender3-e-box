@@ -15,12 +15,15 @@ from build123d import Compound, export_step, export_stl
 import config as cfg
 from left_side import left_side
 from right_side import right_side
+from center import center
 
 
 left_side.label = "left_side"
 right_side.label = "right_side"
+center.label = "center"
 
-assembly = Compound(label="ender3_e_box", children=[left_side, right_side])
+assembly = Compound(label="ender3_e_box",
+                    children=[left_side, right_side, center])
 
 
 # ---------------------------------------------------------------------------
@@ -52,4 +55,5 @@ if __name__ == "__main__":
         except ImportError:
             print("ocp_vscode not available - skipping show()")
         else:
-            show(left_side, right_side, names=["left_side", "right_side"])
+            show(left_side, right_side, center,
+                 names=["left_side", "right_side", "center"])

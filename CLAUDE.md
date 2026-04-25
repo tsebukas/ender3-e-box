@@ -22,12 +22,16 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
   MUST be split. The chosen split:
   - Two mirrored side pieces (left and right END CAPS of the box),
     each with integrated floor, ceiling and front flanges (width set
-    by `FLANGE_WIDTH` in `config.py`, currently 20 mm) that carry
-    grooves for the sliding panels.
-  - A separate bottom panel that slides into the floor-flange grooves.
-  - A separate lid that slides into the ceiling-flange grooves.
-  - A separate front panel (holds connector cutouts for whatever board
-    set is installed) that slides into the front-flange grooves.
+    by `FLANGE_WIDTH` in `config.py`) that carry grooves for the
+    sliding panels.
+  - A CENTRE divider (`center.py`) that hangs from the Y-axis carrier
+    in the middle of the box (see "Centre divider" below). Splits each
+    panel into a left and a right half.
+  - Two bottom-panel halves, each sliding into one side's floor-flange
+    groove and one of the divider's two floor-flange grooves.
+  - Two lid halves, sliding into the matching ceiling-flange grooves.
+  - Two front-panel halves (host connector cutouts for whatever board
+    set is installed), sliding into the front-flange grooves.
 - Sides attach to the printer frame via TWO T-shape rails on the outer
   face of each side wall. The rail profile is derived from
   `lahteylesanne/4040_v-slot.jpg`, which shows a 4040 profile (40 x 40
@@ -38,11 +42,55 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
   fit clearance). Both rails run along Y for the full box depth; the
   box slides into the profile from one Y-end. The wall's outer face
   sits flush with the profile face.
-- Default wall thickness is 2 mm. Integrated flanges are 5 mm thick
-  (thicker than the wall so they can host a 5 mm deep groove).
+- Default wall thickness is `WALL_THK = 2 mm`. Integrated flanges are
+  `FLANGE_THK = 4 mm` thick and `FLANGE_WIDTH = 6 mm` wide; sliding
+  panels are `PANEL_THK = 2 mm` and the slot eats `GROOVE_DEPTH = 5 mm`
+  into the flange end. These are tuned values - changing them ripples
+  through every part. Confirm in `config.py` rather than memorising.
 - The front panel and bottom panel are deliberately isolated so swapping
   an electronics board only requires reprinting those pieces, not the
   whole enclosure. Preserve this modularity when adding new boards.
+
+## Centre divider
+
+The Ender 3 Pro's H-frame carries a third 4040 profile on top of its
+middle bar - the Y-axis carrier - sunk `Y_CARRIER_RECESS = 6.75 mm`
+into the bar (see `lahteylesanne/altvaade.png` and `eestvaade.png` for
+the printer-side reference). The centre divider hooks onto the carrier
+the same way the side end caps hook onto the H-leg profiles, with two
+arrow-shaped V-slot rails - but pointing UP from the divider's pocket
+floor (`+Z`) instead of outward like the side rails (`-X`).
+
+Geometry:
+- The divider mirrors the carrier's recess into its OWN top: the top
+  of the central body (the rail anchor surface) sits at
+  `CENTER_HEIGHT = BOX_HEIGHT - Y_CARRIER_RECESS = 33.25 mm`. Above
+  that, a `PROFILE_SIZE` x `Y_CARRIER_RECESS` carrier pocket cuts
+  through the divider so the carrier sinks in flush. The divider's
+  effective height stays `BOX_HEIGHT` so its lid groove lines up with
+  the side end caps' lid grooves.
+- Two-tier X footprint: the BOTTOM (floor flanges + central wall) keeps
+  the original narrow `2 * FLANGE_WIDTH + WALL_THK` width. The TOP
+  (lid + front flange halves with the pocket between them) widens to
+  `CENTER_TOP_WIDTH = PROFILE_SIZE + 2 * FLANGE_WIDTH + 2 * WALL_THK`.
+  The extra `WALL_THK` on each side is a vertical "side wall" that
+  drops from the lid flange down to the pocket floor plate, anchoring
+  the lid + front flanges so they don't cantilever in mid-air.
+- The top V-slot rails extend `FLANGE_THK` forward of the box envelope
+  (Y in `[-FLANGE_THK, BOX_DEPTH]`) so they sit on the lower-U front
+  flange material at the front - this gives the rails a continuous
+  print bed and avoids a fragile starting tip.
+- The wide front flange would otherwise block the bottom-panel halves
+  from sliding in. A horizontal passage cutout at the panel's Z range
+  opens each U-half from its outer X end inward to the bottom groove.
+
+Manifold gotcha: the central wall and the wide front flange touch only
+along a single line (X = wall edge, Y = 0) unless the wall is extended
+forward into the front flange's Y range. Without this extension OCCT
+treats the union as non-manifold and `fillet` later fails on the inside
+front-wall corners. Every Y-extending divider piece (central wall,
+side walls) therefore extends to `Y = -FLANGE_THK`, sharing a 2D face
+with the wide front flange. Future modifications must preserve this.
 
 ## Toolchain
 
@@ -85,9 +133,13 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
   run it to "verify" a left-side edit - running `left_side.py` alone
   is enough. Only run `right_side.py` when the user asks about the
   right piece specifically, or when the mirroring itself was changed.
-- `assembly.py` imports `left_side` and `right_side` and wraps them in
-  a single `Compound`. It adds no independent geometry; each part
-  module already places itself in the shared global frame.
+- `center.py` is the centre divider. Independent geometry (NOT a mirror
+  of anything) - its body is symmetric in X around `BOX_WIDTH / 2`, so
+  the LEFT and RIGHT halves are built in the same module via paired
+  positions, not by mirroring a separate file.
+- `assembly.py` imports `left_side`, `right_side` and `center` and
+  wraps them in a single `Compound`. It adds no independent geometry;
+  each part module already places itself in the shared global frame.
 
 ## Working with build123d
 
