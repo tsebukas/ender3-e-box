@@ -135,6 +135,8 @@ _WALL_CY    = (cfg.BOX_DEPTH - cfg.FLANGE_THK) / 2
 _PLATE_WIDTH = cfg.PROFILE_SIZE + 2 * cfg.WALL_THK   # 44
 _PLATE_THK   = cfg.WALL_THK
 
+_FLANGE_CORNER = (cfg.FLANGE_THK - cfg.GROOVE_SLOT) / 2 + cfg.GROOVE_SLOT
+
 
 # ---------------------------------------------------------------------------
 # Build the part
@@ -179,8 +181,8 @@ with BuildPart() as center_builder:
     # --- Wide front flange (becomes U-shaped after the pocket cut) -----
     with Locations((_CX,
                     -cfg.FLANGE_THK / 2,
-                    cfg.BOX_HEIGHT / 2)):
-        Box(cfg.CENTER_TOP_WIDTH, cfg.FLANGE_THK, cfg.BOX_HEIGHT)
+                    cfg.BOX_HEIGHT / 2 + _FLANGE_CORNER / 2)):
+        Box(cfg.CENTER_TOP_WIDTH, cfg.FLANGE_THK, cfg.BOX_HEIGHT - _FLANGE_CORNER)
 
     # --- Carrier pocket cut --------------------------------------------
     # Removes X in [pocket left, pocket right], Z in [CENTER_HEIGHT,
@@ -195,7 +197,7 @@ with BuildPart() as center_builder:
     with Locations((_CX,
                     (_pocket_y_lo + _pocket_y_hi) / 2,
                     (_pocket_z_lo + _pocket_z_hi) / 2)):
-        Box(cfg.PROFILE_SIZE,
+        Box(cfg.PROFILE_SIZE + cfg.VSLOT_CLEARANCE,
             _pocket_y_hi - _pocket_y_lo,
             _pocket_z_hi - _pocket_z_lo,
             mode=Mode.SUBTRACT)
@@ -223,13 +225,6 @@ with BuildPart() as center_builder:
         + _all.filter_by(Axis.Y)
               .filter_by_position(Axis.X, _WALL_RIGHT_X - _tol, _WALL_RIGHT_X + _tol)
               .filter_by_position(Axis.Z, _cz_low - _tol, _cz_low + _tol)
-        # plate top <-> side wall (along Y), at the pocket boundary
-        + _all.filter_by(Axis.Y)
-              .filter_by_position(Axis.X, _POCKET_LEFT_X  - _tol, _POCKET_LEFT_X  + _tol)
-              .filter_by_position(Axis.Z, cfg.CENTER_HEIGHT - _tol, cfg.CENTER_HEIGHT + _tol)
-        + _all.filter_by(Axis.Y)
-              .filter_by_position(Axis.X, _POCKET_RIGHT_X - _tol, _POCKET_RIGHT_X + _tol)
-              .filter_by_position(Axis.Z, cfg.CENTER_HEIGHT - _tol, cfg.CENTER_HEIGHT + _tol)
         # ceiling flange <-> side wall (along Y), where the lid flange
         # tucks into the side wall at the inner ceiling-flange corner
         + _all.filter_by(Axis.Y)
@@ -295,35 +290,7 @@ with BuildPart() as center_builder:
                 cfg.GROOVE_SLOT,
                 cfg.BOX_HEIGHT + 2 * cfg.EPS,
                 mode=Mode.SUBTRACT)
-
-    # --- Bottom-panel passage cutout in the wide front flange ----------
-    # Each bottom-panel half slides in from the front through the wide
-    # front flange. The flange would otherwise block the panel between
-    # its outer edge (X = TOP_LEFT_X) and the bottom groove (which sits
-    # in the narrow floor flange far inside). Open a horizontal slot at
-    # the panel's Z range so the panel can pass through.
-    _passage_z_dim    = cfg.GROOVE_SLOT + 2 * cfg.EPS
-    _passage_z_center = cfg.FLANGE_THK / 2
-    _passage_y_dim    = cfg.FLANGE_THK + 2 * cfg.EPS
-    _passage_y_center = -cfg.FLANGE_THK / 2
-
-    _passage_left_x_lo  = _TOP_LEFT_X  - cfg.EPS
-    _passage_left_x_hi  = _FLOOR_LEFT_FAR_X + cfg.EPS
-    _passage_right_x_lo = _FLOOR_RIGHT_FAR_X - cfg.EPS
-    _passage_right_x_hi = _TOP_RIGHT_X + cfg.EPS
-
-    for _x_lo, _x_hi in (
-        (_passage_left_x_lo,  _passage_left_x_hi),
-        (_passage_right_x_lo, _passage_right_x_hi),
-    ):
-        with Locations((( _x_lo + _x_hi) / 2,
-                        _passage_y_center,
-                        _passage_z_center)):
-            Box(_x_hi - _x_lo,
-                _passage_y_dim,
-                _passage_z_dim,
-                mode=Mode.SUBTRACT)
-
+            
     # --- Front-lip nub trim --------------------------------------------
     # Each LEFT/RIGHT pair of lid + front grooves leaves a tiny corner
     # nub at the top-front face. The bottom-front nubs are already gone
@@ -339,6 +306,12 @@ with BuildPart() as center_builder:
             Box(cfg.GROOVE_DEPTH + cfg.EPS, _nub_y_dim, _nub_z_dim,
                 mode=Mode.SUBTRACT)
 
+    # --- Needs a little adjustment at the bottom grooves ---
+    with Locations((_CX,
+                    -cfg.FLANGE_THK / 2,
+                    _FLANGE_CORNER / 2)):
+        Box(cfg.WALL_THK + (cfg.FLANGE_WIDTH - cfg.GROOVE_DEPTH) * 2 , cfg.FLANGE_THK, _FLANGE_CORNER)
+
     # --- Two V-slot engaging arrow rails on the pocket floor -----------
     # Sketch on Plane.XZ offset to Y = -FLANGE_THK and extrude in +Y so
     # the rails span (BOX_DEPTH + FLANGE_THK), reaching FLANGE_THK
@@ -353,6 +326,21 @@ with BuildPart() as center_builder:
                 Polyline(*_top_rail_polygon_pts(_x), close=True)
             make_face()
     extrude(amount=-(cfg.BOX_DEPTH + cfg.FLANGE_THK))
+
+    # --- Front-plate outside fillets -----------------------------------
+    # 2 mm fillet on three outer edges of the combined profile-cap +
+    # front-flange plate at the front face (Y = -FLANGE_THK): top
+    # (Z=BOX_HEIGHT), bottom (Z=0)
+    _fp_all = center_builder.edges()
+    _fp_edges = (
+        _fp_all.filter_by(Axis.X)
+               .filter_by_position(Axis.Y, -cfg.FLANGE_THK - _tol, -cfg.FLANGE_THK + _tol)
+               .filter_by_position(Axis.Z, cfg.BOX_HEIGHT - _tol, cfg.BOX_HEIGHT + _tol)
+        + _fp_all.filter_by(Axis.X)
+                 .filter_by_position(Axis.Y, -cfg.FLANGE_THK - _tol, -cfg.FLANGE_THK + _tol)
+                 .filter_by_position(Axis.Z, -_tol, _tol)
+    )
+    fillet(_fp_edges, cfg.OUTSIDE_FILLET_R)
 
 
 center = center_builder.part

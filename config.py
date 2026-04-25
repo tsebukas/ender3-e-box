@@ -83,7 +83,7 @@ VSLOT_CLEARANCE          =  0.3   # slack on the mating rail so it slides in smo
 # interactive design; flip to OFF (e.g. in CI or batch builds) to skip
 # file writes or the viewer call.
 EXPORT_STEP    = False   # write STEP to build/<part>.step (for assembly review)
-EXPORT_STL     = True   # write STL to build/<part>.stl (for slicing)
+EXPORT_STL     = False   # write STL to build/<part>.stl (for slicing)
 SHOW_IN_VIEWER = True   # call ocp_vscode.show() to preview in OCP CAD Viewer
 
 # --- Misc ----------------------------------------------------------------
