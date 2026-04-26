@@ -21,12 +21,14 @@ from panels import (
     front_left, front_right,
     lid_left, lid_right,
 )
+from boards.skr3 import bottom_left_skr3
 
 
 left_side.label = "left_side"
 right_side.label = "right_side"
 center.label = "center"
-bottom_left.label  = "bottom_left"
+# bottom_left.label  = "bottom_left"
+bottom_left_skr3.label  = "bottom_left (SKR3)"
 bottom_right.label = "bottom_right"
 front_left.label   = "front_left"
 front_right.label  = "front_right"
@@ -35,7 +37,7 @@ lid_right.label    = "lid_right"
 
 assembly = Compound(label="ender3_e_box",
                     children=[left_side, right_side, center,
-                              bottom_left, bottom_right,
+                              bottom_left_skr3, bottom_right,
                               front_left, front_right,
                               lid_left, lid_right])
 
@@ -69,11 +71,4 @@ if __name__ == "__main__":
         except ImportError:
             print("ocp_vscode not available - skipping show()")
         else:
-            show(left_side, right_side, center,
-                 bottom_left, bottom_right,
-                 front_left, front_right,
-                 lid_left, lid_right,
-                 names=["left_side", "right_side", "center",
-                        "bottom_left", "bottom_right",
-                        "front_left", "front_right",
-                        "lid_left", "lid_right"])
+            show(assembly)

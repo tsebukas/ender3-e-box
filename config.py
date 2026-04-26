@@ -46,6 +46,21 @@ GROOVE_DEPTH = 5.0                # how far the groove bites into the flange (X)
 INSIDE_FILLET_R  = 1.0   # radius on the interior edges where wall meets flanges
 OUTSIDE_FILLET_R = 2.0   # radius on the exterior edges of the front plate / cap
 
+# --- Threaded heat insert mounting bosses --------------------------------
+# Bosses extrude from a panel's INNER face to receive a metric threaded
+# heat insert. The boss is a TRUNCATED CONE (frustum): wider at the
+# panel root (BOSS_BASE_OD) and narrower at the outer face
+# (BOSS_TOP_OD), giving the boss a stiffening flare without bulking up
+# the seat surface. A coaxial blind hole (HOLE_DIA / HOLE_DEPTH) is
+# drilled from the boss outer face inward; HOLE_DEPTH is 1 mm greater
+# than BOSS_HEIGHT so the insert sinks 1 mm into the panel body for a
+# flush seat. Shared across every panel that hosts inserts.
+HEAT_INSERT_BOSS_TOP_OD  = 7.0    # foot outer diameter at the boss outer face
+HEAT_INSERT_BOSS_BASE_OD = 10.0   # foot outer diameter at the panel inner face
+HEAT_INSERT_BOSS_HEIGHT  = 3.0    # foot height above the panel inner face
+HEAT_INSERT_HOLE_DIA     = 4.0    # blind hole diameter (insert outer dia)
+HEAT_INSERT_HOLE_DEPTH   = 4.0    # blind hole depth (1 mm past boss base into panel)
+
 # --- Printer frame profile -----------------------------------------------
 PROFILE_SIZE = 40.0   # 4040 aluminium profile cross-section (square)
 
@@ -85,7 +100,7 @@ VSLOT_CLEARANCE          =  0.3   # slack on the mating rail so it slides in smo
 # interactive design; flip to OFF (e.g. in CI or batch builds) to skip
 # file writes or the viewer call.
 EXPORT_STEP    = False   # write STEP to build/<part>.step (for assembly review)
-EXPORT_STL     = False   # write STL to build/<part>.stl (for slicing)
+EXPORT_STL     = True   # write STL to build/<part>.stl (for slicing)
 SHOW_IN_VIEWER = True   # call ocp_vscode.show() to preview in OCP CAD Viewer
 
 # --- Misc ----------------------------------------------------------------

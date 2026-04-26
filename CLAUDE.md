@@ -215,31 +215,33 @@ The thin tongue X regions are reserved for the groove slot fit and
 should NOT carry any cutouts or bosses - keep features in the thick
 body region only.
 
-Planned per-config layering (do not pre-build, just sketch the shape
-that things will take when the first board lands):
+Per-config layering (in place for SKR3, extend for further boards
+as they land):
 
-- `boards/<board>.py` - one Python data module per electronics board
-  (initial targets: `boards/skr3.py`, `boards/orange_pi_lite.py`).
-  Holds the board's intrinsic facts: PCB outline, mounting-hole
-  pattern (XY positions + diameter), connector positions/sizes
-  measured from a board-local origin, recommended standoff height.
-  No build123d code lives here - just dimensions and dataclasses.
+- `config_<board>.py` - one Python data module per electronics board
+  (e.g. `config_skr3.py`, future `config_orange_pi_lite.py`). Holds
+  the board's intrinsic facts: PCB outline, mounting-hole pattern
+  (XY positions + diameter), connector positions/sizes measured from
+  a board-local origin, recommended standoff height. No build123d
+  code here - just dimensions and lists. Sits at the project root
+  alongside the shared `config.py`. Heat-insert geometry constants
+  (boss OD/height, hole dia/depth) are NOT here - they live in the
+  shared `config.py` because every board mount uses the same insert.
 - `panel_features.py` - shared helper module with small build123d
   helpers that operate on a panel `Part` plus parameters:
+  `add_heat_insert_boss(panel, x, y, surface_z, direction)`, future
   `add_rect_cutout(panel, x, y, w, h, ...)`,
-  `add_circle_cutout(panel, x, y, r, ...)`,
-  `add_screw_boss(panel, x, y, height, hole_d, outer_d, ...)`,
-  ... etc. Each helper consumes global-frame coordinates so the
-  board-data module's local-origin positions get translated by the
-  caller, not by the helper.
-- `config_<board_set>.py` - one file per electronics combo
-  (e.g. `config_skr3_orangepi.py`). Imports the relevant blank from
-  `panels`, the relevant board data from `boards/`, and the helpers
-  from `panel_features`, then wires them together (place board at
-  intended XY, walk its mount-hole list, walk its connector list).
-  Exposes the resulting configured panels at module level so
-  `assembly.py` can swap from blank to configured by changing one
-  import line.
+  `add_circle_cutout(panel, x, y, r, ...)`, etc. Each helper consumes
+  GLOBAL-frame coordinates so the board-mount module's local-origin
+  positions get translated by the caller, not by the helper.
+- `boards/<board_or_board_set>.py` - one file per panel configuration
+  (e.g. `boards/skr3.py`, future `boards/skr3_orangepi.py` for a
+  combo). Imports the relevant blank from `panels`, the board data
+  from `config_<board>.py`, and helpers from `panel_features`, then
+  wires them together (place board at intended XY, walk its
+  mount-hole list, walk its connector list). Exposes the resulting
+  configured panels at module level so `assembly.py` can swap from
+  blank to configured by changing one import line.
 
 Why not JSON-driven config: panel features are too varied to model
 cleanly as data (rectangular USB, circular fan, D-shaped power

@@ -133,6 +133,24 @@ _FRONT_BODY_Y_HI = _FRONT_THIN_Y_HI
 
 
 # ---------------------------------------------------------------------------
+# Public inner-face coordinates
+# ---------------------------------------------------------------------------
+# Per-config files (boards mounted onto blanks) anchor features like
+# heat-insert bosses to a panel's INNER face. Expose those coordinates
+# here so callers don't reach into the private cross-section names.
+#
+#   BOTTOM_INNER_Z : Z of the bottom-panel inner (top) face. Bosses on
+#                    the bottom panel extrude in +Z from this surface.
+#   LID_INNER_Z    : Z of the lid-panel inner (bottom) face. Bosses on
+#                    the lid extrude in -Z from this surface.
+#   FRONT_INNER_Y  : Y of the front-panel inner (rear) face. Bosses on
+#                    the front extrude in +Y from this surface.
+BOTTOM_INNER_Z = _BOTTOM_BODY_Z_HI
+LID_INNER_Z    = _LID_BODY_Z_LO
+FRONT_INNER_Y  = _FRONT_THIN_Y_HI
+
+
+# ---------------------------------------------------------------------------
 # Per-side X ranges
 # ---------------------------------------------------------------------------
 
