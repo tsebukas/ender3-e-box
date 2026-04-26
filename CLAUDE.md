@@ -209,12 +209,44 @@ slot, so the panel can't be pushed past the front face). Bottom and
 lid panels' OUTER front edge of the thick body carries an
 `OUTSIDE_FILLET_R` fillet; the front panel does not.
 
-Per-electronics-config files (future) import the blank factories from
-`panels` and add cutouts / mounting bosses with helper functions -
-JSON-driven config was considered and rejected (panel features are too
-varied to model cleanly as data; Python helpers stay more flexible).
+Electronics-config files (future) import the blank factories from
+`panels` and add cutouts / mounting bosses for the chosen board set.
 The thin tongue X regions are reserved for the groove slot fit and
-should NOT carry any cutouts or bosses.
+should NOT carry any cutouts or bosses - keep features in the thick
+body region only.
+
+Planned per-config layering (do not pre-build, just sketch the shape
+that things will take when the first board lands):
+
+- `boards/<board>.py` - one Python data module per electronics board
+  (initial targets: `boards/skr3.py`, `boards/orange_pi_lite.py`).
+  Holds the board's intrinsic facts: PCB outline, mounting-hole
+  pattern (XY positions + diameter), connector positions/sizes
+  measured from a board-local origin, recommended standoff height.
+  No build123d code lives here - just dimensions and dataclasses.
+- `panel_features.py` - shared helper module with small build123d
+  helpers that operate on a panel `Part` plus parameters:
+  `add_rect_cutout(panel, x, y, w, h, ...)`,
+  `add_circle_cutout(panel, x, y, r, ...)`,
+  `add_screw_boss(panel, x, y, height, hole_d, outer_d, ...)`,
+  ... etc. Each helper consumes global-frame coordinates so the
+  board-data module's local-origin positions get translated by the
+  caller, not by the helper.
+- `config_<board_set>.py` - one file per electronics combo
+  (e.g. `config_skr3_orangepi.py`). Imports the relevant blank from
+  `panels`, the relevant board data from `boards/`, and the helpers
+  from `panel_features`, then wires them together (place board at
+  intended XY, walk its mount-hole list, walk its connector list).
+  Exposes the resulting configured panels at module level so
+  `assembly.py` can swap from blank to configured by changing one
+  import line.
+
+Why not JSON-driven config: panel features are too varied to model
+cleanly as data (rectangular USB, circular fan, D-shaped power
+switch, oval card slot, threaded vs pass-through bosses). Python
+helper calls read close to the same as the equivalent JSON but stay
+flexible. Reconsider only if a GUI-based feature editor becomes
+relevant.
 
 ## Working with build123d
 
