@@ -104,6 +104,10 @@ _FRONT_PANEL_Z_HI = cfg.BOX_HEIGHT - _FRONT_PANEL_Z_LO
 # Bonus side-effect (per design intent): the thick body sticks out of
 # the X groove slots at the front, forming stoppers in the front
 # corners of the bottom and lid panels.
+
+_GROOVE_EDGE = (cfg.FLANGE_THK - cfg.GROOVE_SLOT) / 2
+_STOPPER_DEPTH = cfg.FLANGE_THK - _GROOVE_EDGE
+
 _RAISE = (cfg.FLANGE_THK - cfg.GROOVE_SLOT) / 2
 
 # Bottom panel: thin part centred on the floor flange; thick body
@@ -190,6 +194,10 @@ def make_bottom_blank(side: str) -> Part:
         for tx in (left_tx, right_tx):
             with Locations(((tx[0] + tx[1]) / 2, panel_cy, thin_cz)):
                 Box(tx[1] - tx[0], panel_y_dim, cfg.PANEL_THK)
+        # Stoppers 
+        for tx in (left_tx, right_tx):
+            with Locations(((tx[0] + tx[1]) / 2, 0 - cfg.FLANGE_THK + _STOPPER_DEPTH / 2, body_cz)):
+                Box(tx[1] - tx[0],  _STOPPER_DEPTH, body_z_dim)
         # Round the front-bottom edge of the thick body.
         _tol = 0.01
         front_bottom = (
@@ -247,6 +255,10 @@ def make_lid_blank(side: str) -> Part:
         for tx in (left_tx, right_tx):
             with Locations(((tx[0] + tx[1]) / 2, panel_cy, thin_cz)):
                 Box(tx[1] - tx[0], panel_y_dim, cfg.PANEL_THK)
+        # Stoppers 
+        for tx in (left_tx, right_tx):
+            with Locations(((tx[0] + tx[1]) / 2, 0 - cfg.FLANGE_THK + _STOPPER_DEPTH / 2, body_cz)):
+                Box(tx[1] - tx[0], _STOPPER_DEPTH, body_z_dim)
         # Round the front-top edge of the thick body.
         _tol = 0.01
         front_top = (
