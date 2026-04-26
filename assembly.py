@@ -16,14 +16,28 @@ import config as cfg
 from left_side import left_side
 from right_side import right_side
 from center import center
+from panels import (
+    bottom_left, bottom_right,
+    front_left, front_right,
+    lid_left, lid_right,
+)
 
 
 left_side.label = "left_side"
 right_side.label = "right_side"
 center.label = "center"
+bottom_left.label  = "bottom_left"
+bottom_right.label = "bottom_right"
+front_left.label   = "front_left"
+front_right.label  = "front_right"
+lid_left.label     = "lid_left"
+lid_right.label    = "lid_right"
 
 assembly = Compound(label="ender3_e_box",
-                    children=[left_side, right_side, center])
+                    children=[left_side, right_side, center,
+                              bottom_left, bottom_right,
+                              front_left, front_right,
+                              lid_left, lid_right])
 
 
 # ---------------------------------------------------------------------------
@@ -56,4 +70,10 @@ if __name__ == "__main__":
             print("ocp_vscode not available - skipping show()")
         else:
             show(left_side, right_side, center,
-                 names=["left_side", "right_side", "center"])
+                 bottom_left, bottom_right,
+                 front_left, front_right,
+                 lid_left, lid_right,
+                 names=["left_side", "right_side", "center",
+                        "bottom_left", "bottom_right",
+                        "front_left", "front_right",
+                        "lid_left", "lid_right"])

@@ -165,9 +165,56 @@ ranges.
   of anything) - its body is symmetric in X around `BOX_WIDTH / 2`, so
   the LEFT and RIGHT halves are built in the same module via paired
   positions, not by mirroring a separate file.
-- `assembly.py` imports `left_side`, `right_side` and `center` and
-  wraps them in a single `Compound`. It adds no independent geometry;
-  each part module already places itself in the shared global frame.
+- `panels.py` is the shared module for the six sliding panel halves
+  (bottom / front / lid x left / right). It exposes three blank-panel
+  factory functions (`make_bottom_blank`, `make_front_blank`,
+  `make_lid_blank`) plus six module-level instances (`bottom_left`,
+  `bottom_right`, ...). The blanks carry no electronics-specific
+  cutouts or mounting bosses - those will be added later by per-board
+  config files that import the factories and apply features. See the
+  "Sliding panels" section below for the cross-section + insertion
+  order constraints.
+- `assembly.py` imports `left_side`, `right_side`, `center` and the
+  six panel halves from `panels`, wrapping them all in a single
+  `Compound`. It adds no independent geometry; each part module
+  already places itself in the shared global frame.
+
+## Sliding panels
+
+All six panels are produced by `panels.py`. The module is the single
+source of truth for panel cross-sections, insertion-order constraints
+and X-extent maths.
+
+Insertion order (mandatory - the panel sizes are tuned for it):
+
+  1. BOTTOM slides in horizontally from the front, ends flush with the
+     box's front face. Y in `[-FLANGE_THK, BOX_DEPTH]`.
+  2. FRONT drops in vertically from the top and lands on top of the
+     bottom panel's front edge. Z in `[(FLANGE_THK + GROOVE_SLOT)/2,
+     BOX_HEIGHT - (FLANGE_THK + GROOVE_SLOT)/2]`. Stops short of both
+     the floor and lid grooves so it never collides with horizontal
+     panels during their insertion.
+  3. LID slides in horizontally from the front, OVER the front panel,
+     also flush with the box's front face. Same Y as the bottom panel.
+
+Stepped cross-section: each panel is THICK (PANEL_THK + `_RAISE`,
+where `_RAISE = (FLANGE_THK - GROOVE_SLOT)/2`) in the middle and THIN
+(`PANEL_THK`) at the X edges that slide into a groove slot. The thick
+body's outside face is raised toward the box's outer shell so the box
+looks like one continuous surface of flanges + panel bodies, with a
+`(GROOVE_SLOT - PANEL_THK)/2` recess that absorbs the slot's fit
+slack. The thick body also acts as a stopper at the bottom + lid
+panel's front corners (it's wider in Z than the side / centre groove
+slot, so the panel can't be pushed past the front face). Bottom and
+lid panels' OUTER front edge of the thick body carries an
+`OUTSIDE_FILLET_R` fillet; the front panel does not.
+
+Per-electronics-config files (future) import the blank factories from
+`panels` and add cutouts / mounting bosses with helper functions -
+JSON-driven config was considered and rejected (panel features are too
+varied to model cleanly as data; Python helpers stay more flexible).
+The thin tongue X regions are reserved for the groove slot fit and
+should NOT carry any cutouts or bosses.
 
 ## Working with build123d
 
