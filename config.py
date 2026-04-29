@@ -58,8 +58,8 @@ OUTSIDE_FILLET_R = 2.0   # radius on the exterior edges of the front plate / cap
 HEAT_INSERT_BOSS_TOP_OD  = 7.0    # foot outer diameter at the boss outer face
 HEAT_INSERT_BOSS_BASE_OD = 10.0   # foot outer diameter at the panel inner face
 HEAT_INSERT_BOSS_HEIGHT  = 3.0    # foot height above the panel inner face
-HEAT_INSERT_HOLE_DIA     = 4.0    # blind hole diameter (insert outer dia)
-HEAT_INSERT_HOLE_DEPTH   = 4.0    # blind hole depth (1 mm past boss base into panel)
+HEAT_INSERT_HOLE_DIA     = 4.3    # blind hole diameter (insert outer dia)
+HEAT_INSERT_HOLE_DEPTH   = 4.5    # blind hole depth (1 mm past boss base into panel)
 
 # --- Printer frame profile -----------------------------------------------
 PROFILE_SIZE = 40.0   # 4040 aluminium profile cross-section (square)
@@ -100,7 +100,7 @@ VSLOT_CLEARANCE          =  0.3   # slack on the mating rail so it slides in smo
 # interactive design; flip to OFF (e.g. in CI or batch builds) to skip
 # file writes or the viewer call.
 EXPORT_STEP    = False   # write STEP to build/<part>.step (for assembly review)
-EXPORT_STL     = True   # write STL to build/<part>.stl (for slicing)
+EXPORT_STL     = False   # write STL to build/<part>.stl (for slicing)
 SHOW_IN_VIEWER = True   # call ocp_vscode.show() to preview in OCP CAD Viewer
 
 # --- Misc ----------------------------------------------------------------

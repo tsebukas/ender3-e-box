@@ -1,6 +1,9 @@
 # Build artefacts (STEP, STL, etc. regenerated from the sources)
 build/
 
+# Original design brief and reference drawings
+lahteylesanne/
+
 # Python bytecode
 __pycache__/
 *.pyc

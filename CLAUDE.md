@@ -7,7 +7,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 3D-printable electronics enclosure for an Ender 3 Pro 3D printer. The box
 houses control electronics (initial target: Orange Pi Lite SBC + BTT SKR 3
 mainboard) and mounts to the front of the printer's 4040 V-slot H-frame.
-Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
 
 ## Key design constraints
 
@@ -33,8 +32,7 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
   - Two front-panel halves (host connector cutouts for whatever board
     set is installed), sliding into the front-flange grooves.
 - Sides attach to the printer frame via TWO T-shape rails on the outer
-  face of each side wall. The rail profile is derived from
-  `lahteylesanne/4040_v-slot.jpg`, which shows a 4040 profile (40 x 40
+  face of each side wall. The rail profile matches a 4040 profile (40 x 40
   mm) whose face carries TWO V-slots: a narrow neck opens into a wider
   inner chamber that tapers to a flat back wall. Exact dimensions live
   in `config.py` under the `VSLOT_*` constants (neck width/depth,
@@ -55,8 +53,7 @@ Full brief (in Estonian) is in `lahteylesanne/lahteylesanne.md`.
 
 The Ender 3 Pro's H-frame carries a third 4040 profile on top of its
 middle bar - the Y-axis carrier - sunk `Y_CARRIER_RECESS = 6.75 mm`
-into the bar (see `lahteylesanne/altvaade.png` and `eestvaade.png` for
-the printer-side reference). The centre divider hooks onto the carrier
+into the bar. The centre divider hooks onto the carrier
 the same way the side end caps hook onto the H-leg profiles, with two
 arrow-shaped V-slot rails - but pointing UP from the divider's pocket
 floor (`+Z`) instead of outward like the side rails (`-X`).
@@ -145,8 +142,6 @@ ranges.
 
 ## Repository layout convention
 
-- `lahteylesanne/` - original brief and reference drawings (read-only
-  source of truth for requirements).
 - Part files and the assembly script live at the project root (or a
   future `src/` folder) once created.
 
