@@ -28,9 +28,6 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from build123d import export_step, export_stl
-
-import config as cfg
 import config_skr3 as skr3
 import panels
 from panel_features import add_heat_insert_boss
@@ -63,31 +60,5 @@ bottom_left_skr3 = make_bottom_left_skr3()
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    parts = {"bottom_left_skr3": bottom_left_skr3}
-
-    if cfg.EXPORT_STEP or cfg.EXPORT_STL:
-        out_dir = Path(__file__).parent.parent / "build"
-        out_dir.mkdir(exist_ok=True)
-        for name, part in parts.items():
-            if cfg.EXPORT_STEP:
-                step_path = out_dir / f"{name}.step"
-                export_step(part, str(step_path))
-                print(f"{name} STEP -> {step_path}")
-            if cfg.EXPORT_STL:
-                stl_path = out_dir / f"{name}.stl"
-                export_stl(part, str(stl_path))
-                print(f"{name} STL  -> {stl_path}")
-
-    for name, part in parts.items():
-        bb = part.bounding_box()
-        bb_min = tuple(round(v, 2) for v in tuple(bb.min))
-        bb_max = tuple(round(v, 2) for v in tuple(bb.max))
-        print(f"{name:25s}  bb={bb_min}->{bb_max}  vol={part.volume:.1f}")
-
-    if cfg.SHOW_IN_VIEWER:
-        try:
-            from ocp_vscode import show
-        except ImportError:
-            print("ocp_vscode not available - skipping show()")
-        else:
-            show(*parts.values(), names=list(parts.keys()))
+    from preview import preview
+    preview({"bottom_left_skr3": bottom_left_skr3})

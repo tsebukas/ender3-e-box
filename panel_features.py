@@ -24,6 +24,7 @@ from build123d import (
 )
 
 import config as cfg
+import panels
 
 
 def add_heat_insert_boss(panel: Part, x: float, y: float,
@@ -84,8 +85,7 @@ def add_rect_recess_front_panel(panel: Part, x_center: float, z_center: float,
     height             : Z extent.
     depth              : pocket depth cutting from the inner face toward -Y.
     """
-    inner_y  = -(cfg.FLANGE_THK - cfg.PANEL_THK) / 2
-    y_center = inner_y - depth / 2
+    y_center = panels.FRONT_INNER_Y - depth / 2
     with BuildPart() as builder:
         add(panel)
         with Locations((x_center, y_center, z_center)):
@@ -101,11 +101,8 @@ def add_rect_cutout_front_panel(panel: Part, x_center: float, z_center: float,
     width              : X extent.
     height             : Z extent.
     """
-    inner_y  = -(cfg.FLANGE_THK - cfg.PANEL_THK) / 2
-    _raise   = (cfg.FLANGE_THK - cfg.GROOVE_SLOT) / 2
-    outer_y  = inner_y - cfg.PANEL_THK - _raise
-    y_span   = abs(inner_y - outer_y) + 2 * cfg.EPS
-    y_center = (inner_y + outer_y) / 2
+    y_span   = abs(panels.FRONT_INNER_Y - panels.FRONT_OUTER_Y) + 2 * cfg.EPS
+    y_center = (panels.FRONT_INNER_Y + panels.FRONT_OUTER_Y) / 2
     with BuildPart() as builder:
         add(panel)
         with Locations((x_center, y_center, z_center)):

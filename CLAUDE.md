@@ -130,15 +130,13 @@ ranges.
 - All shared dimensions, tolerances and material parameters live in
   `config.py` at the project root. Every part module imports from there
   (`import config as cfg`) instead of hard-coding numbers locally.
-- Each part module's `if __name__ == "__main__":` block must:
-    1. write STEP and STL exports into a local `build/` directory,
-       each gated on `cfg.EXPORT_STEP` and `cfg.EXPORT_STL`, and
-    2. call `ocp_vscode.show(part, names=[...])` so the part renders in
-       the OCP CAD Viewer, gated on `cfg.SHOW_IN_VIEWER` (wrap the
-       `from ocp_vscode import show` import in try/except so the script
-       still runs headless when the viewer package is missing).
-  Do not hard-code "always export" / "always show" - respect the flags
-  so batch/CI runs can turn any of them off without editing every part.
+- Each part module's `if __name__ == "__main__":` block must call
+  `preview({stem: part, ...})` from `preview.py`. The helper handles
+  STEP/STL export (gated on `cfg.EXPORT_STEP` / `cfg.EXPORT_STL`),
+  prints a bbox + volume line per part, and calls `ocp_vscode.show()`
+  (gated on `cfg.SHOW_IN_VIEWER`, with `ImportError` fallback for
+  headless runs). Do not re-implement the export / show pipeline
+  inline - extend `preview.py` if a new behaviour is needed.
 
 ## Repository layout convention
 

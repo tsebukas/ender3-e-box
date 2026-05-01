@@ -40,8 +40,6 @@ material at the front, which makes the part easier to print.
 Global axes (from config.py): +X printer width, +Y depth, +Z up.
 """
 
-from pathlib import Path
-
 from build123d import (
     Axis,
     BuildLine,
@@ -53,8 +51,6 @@ from build123d import (
     Plane,
     Polyline,
     Cylinder,
-    export_step,
-    export_stl,
     extrude,
     fillet,
     make_face,
@@ -368,29 +364,5 @@ center = center_builder.part
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    if cfg.EXPORT_STEP or cfg.EXPORT_STL:
-        out_dir = Path(__file__).parent / "build"
-        out_dir.mkdir(exist_ok=True)
-
-        if cfg.EXPORT_STEP:
-            step_path = out_dir / "center.step"
-            export_step(center, str(step_path))
-            print(f"center STEP -> {step_path}")
-
-        if cfg.EXPORT_STL:
-            stl_path = out_dir / "center.stl"
-            export_stl(center, str(stl_path))
-            print(f"center STL  -> {stl_path}")
-
-    bb = center.bounding_box()
-    print(f"bounding box min = {tuple(round(v, 2) for v in tuple(bb.min))}")
-    print(f"bounding box max = {tuple(round(v, 2) for v in tuple(bb.max))}")
-    print(f"volume           = {center.volume:.1f} mm^3")
-
-    if cfg.SHOW_IN_VIEWER:
-        try:
-            from ocp_vscode import show
-        except ImportError:
-            print("ocp_vscode not available - skipping show()")
-        else:
-            show(center, names=["center"])
+    from preview import preview
+    preview({"center": center})

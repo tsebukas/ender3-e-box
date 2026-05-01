@@ -32,16 +32,12 @@ Insertion order and resulting panel envelopes:
 Global axes (from config.py): +X printer width, +Y depth, +Z up.
 """
 
-from pathlib import Path
-
 from build123d import (
     Axis,
     BuildPart,
     Box,
     Locations,
     Part,
-    export_step,
-    export_stl,
     fillet,
 )
 
@@ -145,9 +141,12 @@ _FRONT_BODY_Y_HI = _FRONT_THIN_Y_HI
 #                    the lid extrude in -Z from this surface.
 #   FRONT_INNER_Y  : Y of the front-panel inner (rear) face. Bosses on
 #                    the front extrude in +Y from this surface.
+#   FRONT_OUTER_Y  : Y of the front-panel outer (front) face. Through
+#                    cutouts span FRONT_OUTER_Y..FRONT_INNER_Y.
 BOTTOM_INNER_Z = _BOTTOM_BODY_Z_HI
 LID_INNER_Z    = _LID_BODY_Z_LO
 FRONT_INNER_Y  = _FRONT_THIN_Y_HI
+FRONT_OUTER_Y  = _FRONT_BODY_Y_LO
 
 
 # ---------------------------------------------------------------------------
@@ -308,38 +307,12 @@ lid_right    = make_lid_blank("right")
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    blanks = {
-        "bottom_left":  bottom_left,
-        "bottom_right": bottom_right,
-        "front_left":   front_left,
-        "front_right":  front_right,
-        "lid_left":     lid_left,
-        "lid_right":    lid_right,
-    }
-
-    if cfg.EXPORT_STEP or cfg.EXPORT_STL:
-        out_dir = Path(__file__).parent / "build"
-        out_dir.mkdir(exist_ok=True)
-        for name, part in blanks.items():
-            if cfg.EXPORT_STEP:
-                step_path = out_dir / f"{name}_blank.step"
-                export_step(part, str(step_path))
-                print(f"{name} STEP -> {step_path}")
-            if cfg.EXPORT_STL:
-                stl_path = out_dir / f"{name}_blank.stl"
-                export_stl(part, str(stl_path))
-                print(f"{name} STL  -> {stl_path}")
-
-    for name, part in blanks.items():
-        bb = part.bounding_box()
-        bb_min = tuple(round(v, 2) for v in tuple(bb.min))
-        bb_max = tuple(round(v, 2) for v in tuple(bb.max))
-        print(f"{name:13s}  bb={bb_min}->{bb_max}  vol={part.volume:.1f}")
-
-    if cfg.SHOW_IN_VIEWER:
-        try:
-            from ocp_vscode import show
-        except ImportError:
-            print("ocp_vscode not available - skipping show()")
-        else:
-            show(*blanks.values(), names=list(blanks.keys()))
+    from preview import preview
+    preview({
+        "bottom_left_blank":  bottom_left,
+        "bottom_right_blank": bottom_right,
+        "front_left_blank":   front_left,
+        "front_right_blank":  front_right,
+        "lid_left_blank":     lid_left,
+        "lid_right_blank":    lid_right,
+    })
