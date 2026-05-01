@@ -13,6 +13,7 @@ Each helper takes a Part, returns a Part - chain helpers freely:
 """
 
 from build123d import (
+    Box,
     BuildPart,
     Cone,
     Cylinder,
@@ -70,4 +71,43 @@ def add_heat_insert_boss(panel: Part, x: float, y: float,
             Cone(cone_bottom_r, cone_top_r, boss_h)
         with Locations((x, y, hole_cz)):
             Cylinder(hole_r, hole_d, mode=Mode.SUBTRACT)
+    return builder.part
+
+
+def add_rect_recess_front_panel(panel: Part, x_center: float, z_center: float,
+                                width: float, height: float,
+                                depth: float) -> Part:
+    """Rectangular pocket on the inner (rear) face of a front panel.
+
+    x_center, z_center : global XZ centre of the pocket.
+    width              : X extent.
+    height             : Z extent.
+    depth              : pocket depth cutting from the inner face toward -Y.
+    """
+    inner_y  = -(cfg.FLANGE_THK - cfg.PANEL_THK) / 2
+    y_center = inner_y - depth / 2
+    with BuildPart() as builder:
+        add(panel)
+        with Locations((x_center, y_center, z_center)):
+            Box(width, depth, height, mode=Mode.SUBTRACT)
+    return builder.part
+
+
+def add_rect_cutout_front_panel(panel: Part, x_center: float, z_center: float,
+                                width: float, height: float) -> Part:
+    """Through rectangular hole in a front panel, spanning its full Y thickness.
+
+    x_center, z_center : global XZ centre of the opening.
+    width              : X extent.
+    height             : Z extent.
+    """
+    inner_y  = -(cfg.FLANGE_THK - cfg.PANEL_THK) / 2
+    _raise   = (cfg.FLANGE_THK - cfg.GROOVE_SLOT) / 2
+    outer_y  = inner_y - cfg.PANEL_THK - _raise
+    y_span   = abs(inner_y - outer_y) + 2 * cfg.EPS
+    y_center = (inner_y + outer_y) / 2
+    with BuildPart() as builder:
+        add(panel)
+        with Locations((x_center, y_center, z_center)):
+            Box(width, y_span, height, mode=Mode.SUBTRACT)
     return builder.part
