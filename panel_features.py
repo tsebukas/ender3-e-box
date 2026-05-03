@@ -15,12 +15,17 @@ Each helper takes a Part, returns a Part - chain helpers freely:
 from build123d import (
     Box,
     BuildPart,
+    BuildSketch,
+    Circle,
     Cone,
     Cylinder,
     Locations,
     Mode,
     Part,
+    Plane,
+    PolarLocations,
     add,
+    extrude,
 )
 
 import config as cfg
@@ -107,4 +112,66 @@ def add_rect_cutout_front_panel(panel: Part, x_center: float, z_center: float,
         add(panel)
         with Locations((x_center, y_center, z_center)):
             Box(width, y_span, height, mode=Mode.SUBTRACT)
+    return builder.part
+
+
+def add_fan_grille_lid(
+    panel: Part,
+    fan_cx: float,
+    fan_cy: float,
+    hole_positions: list[tuple[float, float]],
+    hole_dia: float = 4.0,
+    ring1_radius: float = 12.0,
+    ring1_count: int = 15,
+    ring2_radius: float = 17.0,
+    ring2_count: int = 21,
+    screw_dia: float = 3.2,
+    cbore_dia: float = 6.0,
+    cbore_depth: float = 1.0,
+) -> Part:
+    """Fan grille openings and M3 mount holes on a lid panel.
+
+    Cuts two concentric rings of circular holes in the fan's annular target
+    zone (OD=38mm, ID=20mm), centered at (fan_cx, fan_cy) in the global frame.
+
+    Default geometry for a 4010 fan:
+      ring 1: r=12mm, 15 holes, d=4mm -> arc wall ~1.0mm between holes
+      ring 2: r=17mm, 21 holes, d=4mm -> arc wall ~1.1mm between holes
+      combined open area: 36 * pi * 2^2 = 452mm^2 = 55% of the annular area.
+
+    Small holes prevent objects from falling through while keeping airflow
+    sufficient. Through-holes (screw_dia) with flat cylindrical counterbores
+    (cbore_dia x cbore_depth) on the outer (top) face are cut at each (x, y)
+    in hole_positions.
+
+    Extrusion direction: sketch on outer (top) face, extrude -Z through lid.
+    Plane.XY normal is +Z; negative amount gives downward (-Z) cut.
+    """
+    lid_top = panels.LID_OUTER_Z
+    lid_bot = panels.LID_INNER_Z
+    lid_thk = lid_top - lid_bot
+
+    with BuildPart() as builder:
+        add(panel)
+
+        # Fan grille: two concentric rings of circular holes.
+        # PolarLocations within Locations((fan_cx, fan_cy)) places hole centres
+        # at (fan_cx + r*cos(theta), fan_cy + r*sin(theta)).
+        with BuildSketch(Plane.XY.offset(lid_top + cfg.EPS)):
+            with Locations((fan_cx, fan_cy)):
+                with PolarLocations(ring1_radius, ring1_count):
+                    Circle(hole_dia / 2)
+                with PolarLocations(ring2_radius, ring2_count):
+                    Circle(hole_dia / 2)
+        extrude(amount=-(lid_thk + 2 * cfg.EPS), mode=Mode.SUBTRACT)
+
+        # Mount holes: through-hole + flat counterbore on the outer (top) face.
+        for hx, hy in hole_positions:
+            hole_cz = (lid_top + lid_bot) / 2
+            with Locations((hx, hy, hole_cz)):
+                Cylinder(screw_dia / 2, lid_thk + 2 * cfg.EPS, mode=Mode.SUBTRACT)
+            cbore_cz = lid_top - cbore_depth / 2 + cfg.EPS / 2
+            with Locations((hx, hy, cbore_cz)):
+                Cylinder(cbore_dia / 2, cbore_depth + cfg.EPS, mode=Mode.SUBTRACT)
+
     return builder.part
