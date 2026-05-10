@@ -13,6 +13,7 @@ Each helper takes a Part, returns a Part - chain helpers freely:
 """
 
 from build123d import (
+    Axis,
     Box,
     BuildPart,
     BuildSketch,
@@ -26,6 +27,7 @@ from build123d import (
     PolarLocations,
     add,
     extrude,
+    fillet,
 )
 
 import config as cfg
@@ -112,6 +114,175 @@ def add_rect_cutout_front_panel(panel: Part, x_center: float, z_center: float,
         add(panel)
         with Locations((x_center, y_center, z_center)):
             Box(width, y_span, height, mode=Mode.SUBTRACT)
+    return builder.part
+
+
+def add_fan_grille_lid_recessed(
+    panel: Part,
+    fan_cx: float,
+    fan_cy: float,
+    hole_positions: list[tuple[float, float]],
+    fan_size: float = 40.0,
+    fan_height: float = 11.0,
+    fan_clearance: float = 0.3,
+    bump_wall_thk: float = 2.0,
+    bump_roof_thk: float = 2.0,
+    hole_dia: float = 4.0,
+    ring1_radius: float = 12.0,
+    ring1_count: int = 15,
+    ring2_radius: float = 17.0,
+    ring2_count: int = 21,
+    screw_dia: float = 3.2,
+    cbore_dia: float = 6.0,
+    cbore_depth: float = 1.0,
+) -> Part:
+    """Lid variant where the fan is recessed UP into a bump on top.
+
+    The fan is installed from BELOW: its bottom face ends up flush with
+    the lid's inner face (panels.LID_INNER_Z). Nothing protrudes below
+    the lid - so the lid can still slide horizontally into the side /
+    centre lid grooves with the front panel already in place.
+
+    Geometry:
+      - Through-hole cut in the lid plate: fan_size + fan_clearance
+        square at (fan_cx, fan_cy), spanning the full lid thickness.
+      - Hollow square bump on top of the lid around that hole:
+        cavity = fan_size + fan_clearance,
+        outer  = cavity + 2 * bump_wall_thk,
+        cavity height (above lid top) = fan_height + fan_clearance
+                                       - lid_thk (the part inside the lid),
+        bump total height above lid top = cavity_above + bump_roof_thk.
+      - Bump roof carries the same two-ring grille pattern as the
+        original on-lid version.
+      - Mount holes at hole_positions go through the bump roof from its
+        top face downward, with a flat counterbore on top so the screw
+        head sits flush. Screws thread from above, through the roof,
+        into the fan's corner mount holes.
+    """
+    lid_top = panels.LID_OUTER_Z
+    lid_bot = panels.LID_INNER_Z
+
+    cavity_size = fan_size + fan_clearance
+    bump_outer  = cavity_size + 2 * bump_wall_thk
+
+    # Fan top sits at lid_bot + fan_height; cavity ceiling adds clearance.
+    cavity_z_hi = lid_bot + fan_height + fan_clearance
+    bump_z_hi   = cavity_z_hi + bump_roof_thk
+
+    with BuildPart() as builder:
+        add(panel)
+
+        # Solid bump block on top of the lid. Subtract operations below
+        # carve out the cavity and the lid through-hole in one go.
+        bump_cz = (lid_top + bump_z_hi) / 2
+        with Locations((fan_cx, fan_cy, bump_cz)):
+            Box(bump_outer, bump_outer, bump_z_hi - lid_top)
+
+        # Combined cavity: lid through-hole + bump interior, in one cut.
+        cavity_cz = (lid_bot + cavity_z_hi) / 2
+        with Locations((fan_cx, fan_cy, cavity_cz)):
+            Box(cavity_size, cavity_size,
+                cavity_z_hi - lid_bot + 2 * cfg.EPS,
+                mode=Mode.SUBTRACT)
+
+        # ---- Fillet bump edges (before the round hole cuts so the round
+        #      hole rims don't interact with the fillet topology). --------
+        _T = 0.01
+        ox_lo = fan_cx - bump_outer / 2
+        ox_hi = fan_cx + bump_outer / 2
+        oy_lo = fan_cy - bump_outer / 2
+        oy_hi = fan_cy + bump_outer / 2
+        ix_lo = fan_cx - cavity_size / 2
+        ix_hi = fan_cx + cavity_size / 2
+        iy_lo = fan_cy - cavity_size / 2
+        iy_hi = fan_cy + cavity_size / 2
+
+        # Outer perimeter horizontal edges at the bump's top face.
+        outer_top = (
+            builder.edges().filter_by(Axis.X)
+                .filter_by_position(Axis.Y, oy_lo - _T, oy_hi + _T)
+                .filter_by_position(Axis.Z, bump_z_hi - _T, bump_z_hi + _T)
+            + builder.edges().filter_by(Axis.Y)
+                .filter_by_position(Axis.X, ox_lo - _T, ox_hi + _T)
+                .filter_by_position(Axis.Z, bump_z_hi - _T, bump_z_hi + _T)
+        )
+        # Outer perimeter horizontal edges where the bump base meets the lid top.
+        outer_bot = (
+            builder.edges().filter_by(Axis.X)
+                .filter_by_position(Axis.Y, oy_lo - _T, oy_hi + _T)
+                .filter_by_position(Axis.Z, lid_top - _T, lid_top + _T)
+            + builder.edges().filter_by(Axis.Y)
+                .filter_by_position(Axis.X, ox_lo - _T, ox_hi + _T)
+                .filter_by_position(Axis.Z, lid_top - _T, lid_top + _T)
+        )
+        # Outer vertical corners of the bump.
+        outer_vert = (
+            builder.edges().filter_by(Axis.Z)
+                .filter_by_position(Axis.X, ox_lo - _T, ox_lo + _T)
+                .filter_by_position(Axis.Y, oy_lo - _T, oy_hi + _T)
+            + builder.edges().filter_by(Axis.Z)
+                .filter_by_position(Axis.X, ox_hi - _T, ox_hi + _T)
+                .filter_by_position(Axis.Y, oy_lo - _T, oy_hi + _T)
+        )
+        # Cavity ceiling perimeter edges (inner top of the bump cavity).
+        cav_ceiling = (
+            builder.edges().filter_by(Axis.X)
+                .filter_by_position(Axis.Y, iy_lo - _T, iy_hi + _T)
+                .filter_by_position(Axis.Z, cavity_z_hi - _T, cavity_z_hi + _T)
+            + builder.edges().filter_by(Axis.Y)
+                .filter_by_position(Axis.X, ix_lo - _T, ix_hi + _T)
+                .filter_by_position(Axis.Z, cavity_z_hi - _T, cavity_z_hi + _T)
+        )
+        # Cavity vertical corners (full-height cavity inner corners).
+        cav_vert = (
+            builder.edges().filter_by(Axis.Z)
+                .filter_by_position(Axis.X, ix_lo - _T, ix_lo + _T)
+                .filter_by_position(Axis.Y, iy_lo - _T, iy_hi + _T)
+            + builder.edges().filter_by(Axis.Z)
+                .filter_by_position(Axis.X, ix_hi - _T, ix_hi + _T)
+                .filter_by_position(Axis.Y, iy_lo - _T, iy_hi + _T)
+        )
+        # Under-lid cavity opening edges (cavity rectangle on lid bottom face).
+        under = (
+            builder.edges().filter_by(Axis.X)
+                .filter_by_position(Axis.Y, iy_lo - _T, iy_hi + _T)
+                .filter_by_position(Axis.Z, lid_bot - _T, lid_bot + _T)
+            + builder.edges().filter_by(Axis.Y)
+                .filter_by_position(Axis.X, ix_lo - _T, ix_hi + _T)
+                .filter_by_position(Axis.Z, lid_bot - _T, lid_bot + _T)
+        )
+
+        # Top of lid: ALL bump edges (outer perimeter + cavity inner).
+        # Bottom of lid: only the cavity opening rim on the lid bottom face.
+        # Filleted in one call so the corners where cavity verticals meet
+        # the under-lid rim get a clean three-way blend instead of two
+        # separate fillet ops fighting for the same vertex.
+        fillet(outer_top + outer_bot + outer_vert
+               + cav_ceiling + cav_vert + under,
+               cfg.INSIDE_FILLET_R)
+
+        # Air grille on the bump roof.
+        with BuildSketch(Plane.XY.offset(bump_z_hi + cfg.EPS)):
+            with Locations((fan_cx, fan_cy)):
+                with PolarLocations(ring1_radius, ring1_count):
+                    Circle(hole_dia / 2)
+                with PolarLocations(ring2_radius, ring2_count):
+                    Circle(hole_dia / 2)
+        extrude(amount=-(bump_roof_thk + 2 * cfg.EPS), mode=Mode.SUBTRACT)
+
+        # Mount holes through the bump roof, counterbore on its top face.
+        roof_cz = (cavity_z_hi + bump_z_hi) / 2
+        for hx, hy in hole_positions:
+            with Locations((hx, hy, roof_cz)):
+                Cylinder(screw_dia / 2,
+                         bump_roof_thk + 2 * cfg.EPS,
+                         mode=Mode.SUBTRACT)
+            cbore_cz = bump_z_hi - cbore_depth / 2 + cfg.EPS / 2
+            with Locations((hx, hy, cbore_cz)):
+                Cylinder(cbore_dia / 2,
+                         cbore_depth + cfg.EPS,
+                         mode=Mode.SUBTRACT)
+
     return builder.part
 
 
